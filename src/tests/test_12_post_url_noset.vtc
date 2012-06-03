@@ -1,0 +1,38 @@
+varnishtest "POST request(url_noset)"
+
+server s1 {
+       rxreq
+       txresp
+} -start
+
+varnish v1 -vcl+backend {
+	import postparse from "${vmod_topbuild}/src/.libs/libvmod_postparse.so";
+
+	sub vcl_recv {
+		set req.http.x-run = postparse.parse("",true,"p_",true,true);
+		if(
+			req.http.p_a == "a" && 
+			req.http.p_b == "bb" &&
+			req.http.p_c == "ccc" &&
+			!req.http.x-raw
+		){
+			set req.http.x-test = "1";
+		}
+	}
+	sub vcl_deliver{
+		set resp.http.x-run  = req.http.x-run;
+		set resp.http.x-test = req.http.x-test;
+		set resp.http.x-raw  = req.http.x-raw;
+	}
+} -start
+
+client c1 {
+	txreq -req POST -url "/" -hdr "Content-Type: application/x-www-form-urlencoded" -body "a=a&b=bb&c=ccc"
+	rxresp
+	expect resp.http.x-run  == "1"
+	expect resp.http.x-test == "1"
+
+}
+
+
+client c1 -run
