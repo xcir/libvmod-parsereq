@@ -1,4 +1,4 @@
-Module postparse
+Module parsepost
 Init init_function
 
 #parse(header, setparam  , prefix , parsemulti , parsefile)

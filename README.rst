@@ -1,5 +1,5 @@
 ===================
-vmod_postparse
+vmod_parsepost
 ===================
 
 -------------------------------
@@ -8,13 +8,13 @@ Varnish parse post data module
 
 :Author: Syohei Tanaka(@xcir)
 :Date: 2012-06-03
-:Version: 0.1
+:Version: 0.2
 :Manual section: 3
 
 SYNOPSIS
 ===========
 
-import postparse;
+import parsepost;
 
 DESCRIPTION
 ==============
@@ -59,7 +59,7 @@ Description
 Example
         ::
 
-                if(postparse.parse("x-raw",true,"p_",true,true) == 1){
+                if(parsepost.parse("x-raw",true,"p_",true,true) == 1){
                   std.log("raw: " + req.http.x-raw);
                   std.log("submitter: " + req.http.p_submitter);
                 }
@@ -97,6 +97,7 @@ Make targets:
 HISTORY
 ===========
 
+Version 0.2: rename module(postparse -> parsepost)
 Version 0.1: add function parse
 
 COPYRIGHT
