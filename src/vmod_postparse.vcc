@@ -1,5 +1,6 @@
 Module postparse
 Init init_function
 
-Function INT parse(STRING,BOOL)
+#parse(header, setparam  , prefix , parsemulti , parsefile)
+Function INT parse(STRING,BOOL,STRING,BOOL,BOOL)
 

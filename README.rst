@@ -29,7 +29,7 @@ parse
 Prototype
         ::
 
-                parse(STRING targethead,BOOL parsefile)
+                parse(STRING targethead, BOOL setParam, STRING paramPrefix, STRING parseMulti ,BOOL parseFile)
 Return value
 	INT
 Description

@@ -90,8 +90,16 @@ unsigned url_encode_setHdr(struct sess *sp, char* url,char *head,int *encoded_si
 	return(1);
 }
 
-void decodeForm_multipart(struct sess *sp,char *body,char *tgHead,unsigned parseFile){
+void decodeForm_multipart(struct sess *sp,char *body,char *tgHead,unsigned parseFile,const char *paramPrefix, unsigned setParam){
 	
+	char *prefix;
+	char defPrefix[] = "X-VMODPOST-";
+	if(!setParam){
+		prefix = defPrefix;
+	}else{
+		prefix = paramPrefix;
+	}
+	int prefix_len = strlen(prefix);
 	char tmp;
 	char head[256];
 	char sk_boundary[258];
@@ -154,11 +162,11 @@ void decodeForm_multipart(struct sess *sp,char *body,char *tgHead,unsigned parse
 		}
 		tmp                   = name_line_end[idx];
 		name_line_end[idx]    = 0;
-		hsize                 = strlen(sc_name)+1;
+		hsize                 = strlen(sc_name) + prefix_len +1;
 		if(hsize > 255) break;
 		head[0]               = hsize;
 		head[1]               = 0;
-		snprintf(head +1,255,"%s:",sc_name);
+		snprintf(head +1,255,"%s%s:",prefix,sc_name);
 		name_line_end[idx]    = tmp;
 		
 
@@ -210,6 +218,7 @@ void decodeForm_multipart(struct sess *sp,char *body,char *tgHead,unsigned parse
 			p_body_end[0] = tmp;
 			break;
 		}
+		encoded_size -= prefix_len;
 		p_body_end[0] = tmp;
 
 		///////////////////////////////////////////////
@@ -218,47 +227,64 @@ void decodeForm_multipart(struct sess *sp,char *body,char *tgHead,unsigned parse
 		
 		p_start = p_end;
 	}
-	if(tgHead[0] == NULL) return;
+	
+	if(tgHead[0] == NULL && !setParam) return;
 
 	//////////////
 	//genarate x-www-form-urlencoded format data
 	
 	//////////////
 	//use ws
-	int u = WS_Reserve(sp->wrk->ws, 0);
-	if(u < encoded_size + 1){
-		return;
-	}
+	int u;
 	
 	char *orig_cv_body, *cv_body, *h_val;
-	orig_cv_body = cv_body = (char*)sp->wrk->ws->f;
-	
-	WS_Release(sp->wrk->ws,encoded_size+1);
+	if(tgHead[0] == NULL){
+		orig_cv_body = cv_body = NULL;
+	}else{
+		u = WS_Reserve(sp->wrk->ws, 0);
+		if(u < encoded_size + 1){
+			return;
+		}
+		orig_cv_body = cv_body = (char*)sp->wrk->ws->f;
+		WS_Release(sp->wrk->ws,encoded_size+1);
+	}
 	//////////////
 	for(int i=0;i<ll_entry_count;++i){
-		hsize = basehead[0];
-		memcpy(cv_body,basehead+1,hsize);
-		cv_body    += hsize - 1;
-		cv_body[0] ='=';
-		++cv_body;
-		h_val      = VRT_GetHdr(sp,HDR_REQ,basehead);
-		memcpy(cv_body,h_val,strlen(h_val));
-		cv_body    +=strlen(h_val);
-		cv_body[0] ='&';
-		++cv_body;
+		if(cv_body){
+			hsize = basehead[0] -prefix_len;
+			memcpy(cv_body,basehead+1+prefix_len,hsize);
+			cv_body    += hsize - 1;
+			cv_body[0] ='=';
+			++cv_body;
+			h_val      = VRT_GetHdr(sp,HDR_REQ,basehead);
+		}
+		if(!setParam){
+			//remove header
+			VRT_SetHdr(sp, HDR_REQ, basehead, 0);
+		}
+		if(cv_body){
+			memcpy(cv_body,h_val,strlen(h_val));
+			cv_body    +=strlen(h_val);
+			cv_body[0] ='&';
+			++cv_body;
+		}
 		basehead   = *(char**)(basehead+strlen(basehead+1)+2);
 	}
-	orig_cv_body[encoded_size - 1] =0;
-	
+	if(cv_body){
+		orig_cv_body[encoded_size - 1] =0;
+	}
+
+	if(tgHead[0] == NULL) return;
 	VRT_SetHdr(sp, HDR_REQ, tgHead, orig_cv_body, vrt_magic_string_end);
 	
 }
-void decodeForm_urlencoded(struct sess *sp,char *body){
+void decodeForm_urlencoded(struct sess *sp,char *body,const char *paramPrefix){
 	char head[256];
 	char *sc_eq,*sc_amp;
 	char *tmpbody = body;
 	int hsize;
 	char tmp;
+	int prefix_len = strlen(paramPrefix);
 	
 	while(1){
 		//////////////////////////////
@@ -275,11 +301,11 @@ void decodeForm_urlencoded(struct sess *sp,char *body){
 		tmp = sc_eq[0];
 		sc_eq[0] = 0;// = -> null
 		
-		hsize = strlen(tmpbody) + 1;
+		hsize = strlen(tmpbody) + prefix_len + 1;
 		if(hsize > 255) return;
 		head[0]   = hsize;
 		head[1]   = 0;
-		snprintf(head +1,255,"%s:",tmpbody);
+		snprintf(head +1,255,"%s%s:", paramPrefix, tmpbody);
 		sc_eq[0]  = tmp;
 
 		//////////////////////////////
@@ -296,8 +322,16 @@ void decodeForm_urlencoded(struct sess *sp,char *body){
 	}
 }
 int 
-vmod_parse(struct sess *sp,const char* tgHeadName,unsigned parseFile){
-//デバッグでReInitとかrestartの時に不具合でないかチェック（ロールバックも）
+vmod_parse(struct sess *sp,const char* tgHeadName,unsigned setParam,const char* paramPrefix,unsigned parseMulti,unsigned parseFile){
+/*
+	struct sess *sp,			OK
+	const char* tgHeadName,		OK
+	const char* paramPrefix,	url,
+	unsigned setParam,			url,
+	unsigned parseMulti,		OK
+	unsigned parseFile			OK
+*/	
+	//デバッグでReInitとかrestartの時に不具合でないかチェック（ロールバックも）
 //Content = pipeline.e-bの時はRxbuf確保をしない（必要ないので）
 //mix形式をurlencodeに切り替える（組み換えで安全に）<-完了
 /*
@@ -345,7 +379,7 @@ vmod_parse(struct sess *sp,const char* tgHeadName,unsigned parseFile){
 	
 	if (!VRT_strcmp(h_ctype_ptr, "application/x-www-form-urlencoded")) {
 		//application/x-www-form-urlencoded
-	}else if(h_ctype_ptr != NULL && h_ctype_ptr == strstr(h_ctype_ptr, "multipart/form-data")){
+	}else if(h_ctype_ptr != NULL && h_ctype_ptr == strstr(h_ctype_ptr, "multipart/form-data") && parseMulti){
 		//multipart/form-data
 		multipart = 1;
 	}else{
@@ -421,11 +455,12 @@ vmod_parse(struct sess *sp,const char* tgHeadName,unsigned parseFile){
 	//////////////////////////////
 	//decode form
 	if(multipart){
-		decodeForm_multipart(sp, body,tgHead,parseFile);
+		decodeForm_multipart(sp, body,tgHead,parseFile,paramPrefix,setParam);
 	}else{
 		if(tgHead[0] != NULL)
 			VRT_SetHdr(sp, HDR_REQ, tgHead, body, vrt_magic_string_end);
-		decodeForm_urlencoded(sp, body);
+		if(setParam)
+			decodeForm_urlencoded(sp, body,paramPrefix);
 	}
 	return 1;
 }
