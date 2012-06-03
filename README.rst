@@ -37,9 +37,9 @@ Description
 Example
         ::
 
-                if(postparse.parse("x-test",false) == 1){
-                  std.log("raw: " + req.http.x-test);
-                  std.log("submitter: " + req.http.submitter);
+                if(postparse.parse("x-raw",true,"p_",true,true) == 1){
+                  std.log("raw: " + req.http.x-raw);
+                  std.log("submitter: " + req.http.p_submitter);
                 }
 
                 //response
