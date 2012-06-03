@@ -1,0 +1,31 @@
+varnishtest "GET request"
+
+server s1 {
+       rxreq
+       txresp
+} -start
+
+varnish v1 -vcl+backend {
+	import postparse from "${vmod_topbuild}/src/.libs/libvmod_postparse.so";
+
+	sub vcl_recv {
+		if(postparse.parse("X-TEST",true) == 1){
+			set req.http.x-run = "1";
+		}else{
+			set req.http.x-run = "0";
+		}
+	}
+	sub vcl_deliver{
+		set resp.http.x-run = req.http.x-run;
+	}
+} -start
+
+client c1 {
+	txreq -url "/"
+	rxresp
+	expect resp.http.x-run == "0"
+
+}
+
+
+client c1 -run
