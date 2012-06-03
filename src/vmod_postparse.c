@@ -113,6 +113,9 @@ void decodeForm_multipart(struct sess *sp,char *body,char *tgHead,unsigned parse
 	char *curhead;
 	int  ll_u, ll_head_len, ll_size;
 	int  ll_entry_count = 0;
+
+	int u;
+	char *orig_cv_body, *cv_body, *h_val;
 	
 	//////////////////////////////
 	//get boundary
@@ -131,6 +134,7 @@ void decodeForm_multipart(struct sess *sp,char *body,char *tgHead,unsigned parse
 	while(1){
 		///////////////////////////////////////////////
 		//search data
+		if(!p_start) break;
 
 		//boundary
 		p_end = strstr(p_start + 1,sk_boundary);
@@ -227,7 +231,6 @@ void decodeForm_multipart(struct sess *sp,char *body,char *tgHead,unsigned parse
 		
 		p_start = p_end;
 	}
-	
 	if(tgHead[0] == NULL && !setParam) return;
 
 	//////////////
@@ -235,9 +238,6 @@ void decodeForm_multipart(struct sess *sp,char *body,char *tgHead,unsigned parse
 	
 	//////////////
 	//use ws
-	int u;
-	
-	char *orig_cv_body, *cv_body, *h_val;
 	if(tgHead[0] == NULL){
 		orig_cv_body = cv_body = NULL;
 	}else{
