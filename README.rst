@@ -29,9 +29,31 @@ parse
 Prototype
         ::
 
-                parse(STRING targethead, BOOL setParam, STRING paramPrefix, STRING parseMulti ,BOOL parseFile)
+                parse(STRING targethead, BOOL setParam, STRING paramPrefix, BOOL parseMulti ,BOOL parseFile)
+Parameter
+        ::
+
+                STRING targethead
+                  store raw data to specified header.
+                  if this param is null. is not set.
+                  
+                BOOL setParam
+                  true  = header is set to the data was parsed.
+                  false = is not set.
+                  
+                STRING paramPrefix
+                  prefix to use when header setting.
+                  
+                BOOL parseMulti
+                  true  = parse to the multipart/mixed
+                  false = no parse.
+                  
+                BOOL parseFile
+                  true  = parse to the file(multipart/mixed)
+                  false = no parse.
+	
 Return value
-	INT
+	INT  success = 1 ,failed < 1
 Description
 	get POST request(Only "application/x-www-form-urlencoded" "multipart/mixed")
 Example

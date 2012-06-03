@@ -1,0 +1,52 @@
+varnishtest "POST request(double)"
+
+server s1 {
+       rxreq
+       txresp
+} -start
+
+varnish v1 -vcl+backend {
+	import postparse from "${vmod_topbuild}/src/.libs/libvmod_postparse.so";
+
+	sub vcl_recv {
+		set req.http.x-run = postparse.parse("x-raw",true,"p_",true,true);
+		set req.http.x-run2 = postparse.parse("x-raw2",true,"p2_",true,true);
+		if(
+			req.http.p_a == "a" && 
+			req.http.p_b == "bb" &&
+			req.http.p_c == "ccc"
+		){
+			set req.http.x-test = "1";
+		}
+		if(
+			req.http.p2_a == "a" && 
+			req.http.p2_b == "bb" &&
+			req.http.p2_c == "ccc"
+		){
+			set req.http.x-test2 = "1";
+		}
+	}
+	sub vcl_deliver{
+		set resp.http.x-run  = req.http.x-run;
+		set resp.http.x-test = req.http.x-test;
+		set resp.http.x-raw  = req.http.x-raw;
+		set resp.http.x-run2  = req.http.x-run2;
+		set resp.http.x-test2 = req.http.x-test2;
+		set resp.http.x-raw2  = req.http.x-raw2;
+	}
+} -start
+
+client c1 {
+	txreq -req POST -url "/" -hdr "Content-Type: application/x-www-form-urlencoded" -body "a=a&b=bb&c=ccc"
+	rxresp
+	expect resp.http.x-run  == "1"
+	expect resp.http.x-test == "1"
+	expect resp.http.x-raw  == "a=a&b=bb&c=ccc"
+	expect resp.http.x-run2  == "1"
+	expect resp.http.x-test2 == "1"
+	expect resp.http.x-raw2  == "a=a&b=bb&c=ccc"
+
+}
+
+
+client c1 -run
