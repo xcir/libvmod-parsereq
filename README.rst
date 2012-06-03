@@ -45,17 +45,17 @@ Parameter
                   prefix to use when header setting.
                   
                 BOOL parseMulti
-                  true  = parse to the multipart/mixed
+                  true  = parse to the multipart/form-data
                   false = no parse.
                   
                 BOOL parseFile
-                  true  = parse to the file(multipart/mixed)
+                  true  = parse to the file(multipart/form-data)
                   false = no parse.
 	
 Return value
 	INT  success = 1 ,failed < 1
 Description
-	get POST request(Only "application/x-www-form-urlencoded" "multipart/mixed")
+	get POST request(Only "application/x-www-form-urlencoded" "multipart/form-data")
 Example
         ::
 
