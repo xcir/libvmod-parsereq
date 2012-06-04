@@ -11,16 +11,57 @@
 #include <sys/mman.h>
 #include <sys/types.h>
 #include <stdio.h>
-
+#include <config.h>
 #include "vcc_if.h"
+#include "vmod_abi.h"
 
+static int type_htcread = 0;
 
+//#define DEBUG_HTCREAD
+//#define DEBUG_SYSLOG
 
+//HTC_Read ~3.0.3
+typedef ssize_t HTC_READ302(struct http_conn *htc, void *d, size_t len);
+
+//HTC_Read 3.0.3~
+typedef ssize_t HTC_READ303(struct worker *w, struct http_conn *htc, void *d, size_t len);
 
 int
 init_function(struct vmod_priv *priv, const struct VCL_conf *conf)
 {
 	return (0);
+}
+
+ssize_t vmod_HTC_Read(struct worker *w, struct http_conn *htc, void *d, size_t len){
+	if(type_htcread == 0){
+		if(
+			strstr(VMOD_ABI_Version,"Varnish 3.0.2 ") ||
+			strstr(VMOD_ABI_Version,"Varnish 3.0.2-") ||
+			strstr(VMOD_ABI_Version,"Varnish 3.0.1 ") ||
+			strstr(VMOD_ABI_Version,"Varnish 3.0.1-")
+		){
+			type_htcread = 1;
+		}else{
+			type_htcread = 2;
+		}
+#ifdef DEBUG_SYSLOG
+		syslog(6,"HTC_Read,init:%d",type_htcread);
+#endif
+	}
+#ifdef DEBUG_SYSLOG
+	syslog(6,"HTC_Read,exec:%d",type_htcread);
+#endif
+	void * hr = (void *)HTC_Read;
+	switch(type_htcread){
+		case 1:
+			return ((HTC_READ302 *)hr)(htc,d,len);
+			break;
+		case 2:
+			return ((HTC_READ303 *)hr)(w,htc,d,len);
+			break;
+	}
+	
+		
 }
 
 
@@ -97,7 +138,7 @@ void decodeForm_multipart(struct sess *sp,char *body,char *tgHead,unsigned parse
 	if(!setParam){
 		prefix = defPrefix;
 	}else{
-		prefix = paramPrefix;
+		prefix = (char*)paramPrefix;
 	}
 	int prefix_len = strlen(prefix);
 	char tmp;
@@ -231,14 +272,14 @@ void decodeForm_multipart(struct sess *sp,char *body,char *tgHead,unsigned parse
 		
 		p_start = p_end;
 	}
-	if(tgHead[0] == NULL && !setParam) return;
+	if(tgHead[0] == 0 && !setParam) return;
 
 	//////////////
 	//genarate x-www-form-urlencoded format data
 	
 	//////////////
 	//use ws
-	if(tgHead[0] == NULL){
+	if(tgHead[0] == 0){
 		orig_cv_body = cv_body = NULL;
 	}else{
 		u = WS_Reserve(sp->wrk->ws, 0);
@@ -274,7 +315,7 @@ void decodeForm_multipart(struct sess *sp,char *body,char *tgHead,unsigned parse
 		orig_cv_body[encoded_size - 1] =0;
 	}
 
-	if(tgHead[0] == NULL) return;
+	if(tgHead[0] == 0) return;
 	VRT_SetHdr(sp, HDR_REQ, tgHead, orig_cv_body, vrt_magic_string_end);
 	
 }
@@ -323,6 +364,7 @@ void decodeForm_urlencoded(struct sess *sp,char *body,const char *paramPrefix){
 }
 int 
 vmod_parse(struct sess *sp,const char* tgHeadName,unsigned setParam,const char* paramPrefix,unsigned parseMulti,unsigned parseFile){
+
 /*
 	struct sess *sp,			OK
 	const char* tgHeadName,		OK
@@ -370,7 +412,7 @@ vmod_parse(struct sess *sp,const char* tgHeadName,unsigned setParam,const char* 
 		tgHead[1] = 0;
 		snprintf(tgHead +1,255,"%s:",tgHeadName);
 	}else{
-		tgHead[0] = NULL;
+		tgHead[0] = 0;
 	}
 
 	//////////////////////////////
@@ -403,12 +445,15 @@ vmod_parse(struct sess *sp,const char* tgHeadName,unsigned setParam,const char* 
 
 	//////////////////////////////
 	//Check POST data is loaded
+#ifdef DEBUG_HTCREAD
+	if(0 == 1){
+#else
 	if(sp->htc->pipeline.b != NULL && Tlen(sp->htc->pipeline) == content_length){
+#endif		
 		//complete read
 		body = sp->htc->pipeline.b;
 	}else{
 		//incomplete read
-		
 		int rxbuf_size = Tlen(sp->htc->rxbuf);
 		///////////////////////////////////////////////
 		//use ws
@@ -436,8 +481,8 @@ vmod_parse(struct sess *sp,const char* tgHeadName,unsigned setParam,const char* 
 			}
 
 			// read body data into 'buf'
-			rsize = HTC_Read(sp->htc, buf, buf_size);
-
+			//rsize = HTC_Read(sp->htc, buf, buf_size);
+			rsize = vmod_HTC_Read(sp->wrk, sp->htc, buf, buf_size);
 			if (rsize <= 0) {
 				return -3;
 			}
@@ -457,7 +502,7 @@ vmod_parse(struct sess *sp,const char* tgHeadName,unsigned setParam,const char* 
 	if(multipart){
 		decodeForm_multipart(sp, body,tgHead,parseFile,paramPrefix,setParam);
 	}else{
-		if(tgHead[0] != NULL)
+		if(tgHead[0] != 0)
 			VRT_SetHdr(sp, HDR_REQ, tgHead, body, vrt_magic_string_end);
 		if(setParam)
 			decodeForm_urlencoded(sp, body,paramPrefix);

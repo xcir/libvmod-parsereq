@@ -94,6 +94,14 @@ Make targets:
 * make check - runs the unit tests in ``src/tests/*.vtc``
 
 
+Tested Version
+===========
+
+* 3.0.1
+* 3.0.2
+* 3.0.2-streaming
+* 3.0.3-rc1
+
 HISTORY
 ===========
 
