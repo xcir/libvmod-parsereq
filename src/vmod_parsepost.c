@@ -449,10 +449,17 @@ vmod_parse(struct sess *sp,const char* tgHeadName,unsigned setParam,const char* 
 	if(0 == 1){
 #else
 	if(sp->htc->pipeline.b != NULL && Tlen(sp->htc->pipeline) == content_length){
-#endif		
+#endif
+
+#ifdef DEBUG_SYSLOG
+		syslog(6,"noread");
+#endif
 		//complete read
 		body = sp->htc->pipeline.b;
 	}else{
+#ifdef DEBUG_SYSLOG
+		syslog(6,"read");
+#endif
 		//incomplete read
 		int rxbuf_size = Tlen(sp->htc->rxbuf);
 		///////////////////////////////////////////////
