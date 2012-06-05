@@ -113,6 +113,10 @@ unsigned url_encode_setHdr(struct sess *sp, char* url,char *head,int *encoded_si
 		//use ws
 		int u = WS_Reserve(sp->wrk->ws, 0);
 		if(u < size){
+#ifdef DEBUG_SYSLOG
+		syslog(6,"parse:url_encode_setHdr more ws size");
+#endif
+
 			return 0;
 		}
 		copy = (char*)sp->wrk->ws->f;
@@ -166,7 +170,13 @@ void decodeForm_multipart(struct sess *sp,char *body,char *tgHead,unsigned parse
 
 	h_ctype_ptr = VRT_GetHdr(sp, HDR_REQ, "\015Content-Type:");
 	raw_boundary = strstr(h_ctype_ptr,"; boundary=");
-	if(!raw_boundary || strlen(raw_boundary) > 255) return;
+	if(!raw_boundary || strlen(raw_boundary) > 255){
+#ifdef DEBUG_SYSLOG
+		syslog(6,"parse:decodeForm_multipart boudary size>255");
+#endif
+		return;
+	}
+	
 	raw_boundary   +=11;
 	sk_boundary[0] = '-';
 	sk_boundary[1] = '-';
@@ -236,6 +246,9 @@ void decodeForm_multipart(struct sess *sp,char *body,char *tgHead,unsigned parse
 		ll_head_len = strlen(head +1) +1;
 		ll_size = ll_head_len + sizeof(char*)+2;
 		if(ll_u < ll_size){
+#ifdef DEBUG_SYSLOG
+		syslog(6,"parse:decodeForm_multipart more ws size");
+#endif
 			return ;
 		}
 
@@ -276,7 +289,12 @@ void decodeForm_multipart(struct sess *sp,char *body,char *tgHead,unsigned parse
 		
 		p_start = p_end;
 	}
-	if(tgHead[0] == 0 && !setParam) return;
+	if(tgHead[0] == 0 && !setParam){
+#ifdef DEBUG_SYSLOG
+		syslog(6,"parse:decodeForm_multipart head 0 & no set param [OK]");
+#endif
+		return;
+	}
 
 	//////////////
 	//genarate x-www-form-urlencoded format data
@@ -288,6 +306,10 @@ void decodeForm_multipart(struct sess *sp,char *body,char *tgHead,unsigned parse
 	}else{
 		u = WS_Reserve(sp->wrk->ws, 0);
 		if(u < encoded_size + 1){
+#ifdef DEBUG_SYSLOG
+		syslog(6,"parse:decodeForm_multipart more ws size(2)");
+#endif
+
 			return;
 		}
 		orig_cv_body = cv_body = (char*)sp->wrk->ws->f;
@@ -323,7 +345,12 @@ void decodeForm_multipart(struct sess *sp,char *body,char *tgHead,unsigned parse
 		orig_cv_body[encoded_size - 1] =0;
 	}
 
-	if(tgHead[0] == 0) return;
+	if(tgHead[0] == 0){
+#ifdef DEBUG_SYSLOG
+		syslog(6,"parse:decodeForm_multipart head 0 [OK]");
+#endif
+		return;
+	}
 	VRT_SetHdr(sp, HDR_REQ, tgHead, orig_cv_body, vrt_magic_string_end);
 	
 }
@@ -351,7 +378,12 @@ void decodeForm_urlencoded(struct sess *sp,char *body,const char *paramPrefix){
 		sc_eq[0] = 0;// = -> null
 		
 		hsize = strlen(tmpbody) + prefix_len + 1;
-		if(hsize > 255) return;
+		if(hsize > 255){
+#ifdef DEBUG_SYSLOG
+		syslog(6,"parse:decodeForm_urlencoded head size > 255");
+#endif
+			return;
+		}
 		head[0]   = hsize;
 		head[1]   = 0;
 		snprintf(head +1,255,"%s%s:", paramPrefix, tmpbody);
@@ -372,6 +404,9 @@ void decodeForm_urlencoded(struct sess *sp,char *body,const char *paramPrefix){
 }
 int 
 vmod_parse(struct sess *sp,const char* tgHeadName,unsigned setParam,const char* paramPrefix,unsigned parseMulti,unsigned parseFile){
+#ifdef DEBUG_SYSLOG
+		syslog(6,"parse:start");
+#endif
 
 /*
 	struct sess *sp,			OK
@@ -415,7 +450,12 @@ vmod_parse(struct sess *sp,const char* tgHeadName,unsigned setParam,const char* 
 	//build tgHead
 	int hsize = strlen(tgHeadName) +1;
 	if(hsize > 1){
-		if(hsize > 255) return -2;
+		if(hsize > 255){
+#ifdef DEBUG_SYSLOG
+		syslog(6,"parse:err -2");
+#endif
+			return -2;
+		}
 		tgHead[0] = hsize;
 		tgHead[1] = 0;
 		snprintf(tgHead +1,255,"%s:",tgHeadName);
@@ -438,10 +478,16 @@ vmod_parse(struct sess *sp,const char* tgHeadName,unsigned setParam,const char* 
 			//multipart/form-data
 			multipart = 1;
 		}else{
+#ifdef DEBUG_SYSLOG
+		syslog(6,"parse:err -4");
+#endif
 			return -4;
 		}
 	}else{
 		//none support type
+#ifdef DEBUG_SYSLOG
+		syslog(6,"parse:err -4");
+#endif
 		return -4;
 	}
 
@@ -454,12 +500,18 @@ vmod_parse(struct sess *sp,const char* tgHeadName,unsigned setParam,const char* 
 	h_clen_ptr = VRT_GetHdr(sp, HDR_REQ, "\017Content-Length:");
 	if (!h_clen_ptr) {
 		//can't get
+#ifdef DEBUG_SYSLOG
+		syslog(6,"parse:err -2");
+#endif
 		return -2;
 	}
 	orig_content_length = content_length = strtoul(h_clen_ptr, NULL, 10);
 
 	if (content_length <= 0) {
 		//illegal length
+#ifdef DEBUG_SYSLOG
+		syslog(6,"parse:err -2");
+#endif
 		return -2;
 	}
 
@@ -486,6 +538,9 @@ vmod_parse(struct sess *sp,const char* tgHeadName,unsigned setParam,const char* 
 		//use ws
 		int u = WS_Reserve(sp->wrk->ws, 0);
 		if(u < content_length + rxbuf_size + 1){
+#ifdef DEBUG_SYSLOG
+		syslog(6,"parse:err -1");
+#endif
 			return -1;
 		}
 		body = (char*)sp->wrk->ws->f;
@@ -511,6 +566,9 @@ vmod_parse(struct sess *sp,const char* tgHeadName,unsigned setParam,const char* 
 			//rsize = HTC_Read(sp->htc, buf, buf_size);
 			rsize = vmod_HTC_Read(sp->wrk, sp->htc, buf, buf_size);
 			if (rsize <= 0) {
+#ifdef DEBUG_SYSLOG
+		syslog(6,"parse:err -3");
+#endif
 				return -3;
 			}
 
@@ -538,5 +596,8 @@ vmod_parse(struct sess *sp,const char* tgHeadName,unsigned setParam,const char* 
 		if(setParam)
 			decodeForm_urlencoded(sp, body,paramPrefix);
 	}
+#ifdef DEBUG_SYSLOG
+		syslog(6,"parse:end");
+#endif
 	return 1;
 }
