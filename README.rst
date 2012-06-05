@@ -93,9 +93,13 @@ Make targets:
 * make install - installs your vmod in `VMODDIR`
 * make check - runs the unit tests in ``src/tests/*.vtc``
 
+Trouble shooting
+=================
+
+you try to increase the sess_workspace,http_req_size and stack size(ulimit -s)
 
 Tested Version
-===========
+===============
 
 * 3.0.1
 * 3.0.2
