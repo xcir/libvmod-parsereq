@@ -419,11 +419,15 @@ vmod_parse(struct sess *sp,const char* tgHeadName,unsigned setParam,const char* 
 	//check Content-Type
 	h_ctype_ptr = VRT_GetHdr(sp, HDR_REQ, "\015Content-Type:");
 	
-	if (!VRT_strcmp(h_ctype_ptr, "application/x-www-form-urlencoded")) {
-		//application/x-www-form-urlencoded
-	}else if(h_ctype_ptr != NULL && h_ctype_ptr == strstr(h_ctype_ptr, "multipart/form-data") && parseMulti){
-		//multipart/form-data
-		multipart = 1;
+	if(h_ctype_ptr != NULL){
+		if      (h_ctype_ptr == strstr(h_ctype_ptr, "application/x-www-form-urlencoded")) {
+			//application/x-www-form-urlencoded
+		}else if(h_ctype_ptr == strstr(h_ctype_ptr, "multipart/form-data") && parseMulti){
+			//multipart/form-data
+			multipart = 1;
+		}else{
+			return -4;
+		}
 	}else{
 		//none support type
 		return -4;
