@@ -510,6 +510,10 @@ vmod_parse(struct sess *sp,const char* tgHeadName,unsigned setParam,const char* 
 
 	//////////////////////////////
 	//decode form
+#ifdef DEBUG_SYSLOG
+		syslog(6,"content-size (orig)%d (read)%d",orig_content_length,strlen(body));
+#endif
+
 	if(multipart){
 		decodeForm_multipart(sp, body,tgHead,parseFile,paramPrefix,setParam);
 	}else{
