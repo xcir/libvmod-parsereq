@@ -160,6 +160,10 @@ void decodeForm_multipart(struct sess *sp,char *body,char *tgHead,unsigned parse
 	
 	//////////////////////////////
 	//get boundary
+#ifdef DEBUG_SYSLOG
+		syslog(6,"GetHdr Content-Type:");
+#endif
+
 	h_ctype_ptr = VRT_GetHdr(sp, HDR_REQ, "\015Content-Type:");
 	raw_boundary = strstr(h_ctype_ptr,"; boundary=");
 	if(!raw_boundary || strlen(raw_boundary) > 255) return;
@@ -297,6 +301,10 @@ void decodeForm_multipart(struct sess *sp,char *body,char *tgHead,unsigned parse
 			cv_body    += hsize - 1;
 			cv_body[0] ='=';
 			++cv_body;
+
+#ifdef DEBUG_SYSLOG
+		syslog(6,"GetHdr %s",basehead +1);
+#endif
 			h_val      = VRT_GetHdr(sp,HDR_REQ,basehead);
 		}
 		if(!setParam){
@@ -417,6 +425,10 @@ vmod_parse(struct sess *sp,const char* tgHeadName,unsigned setParam,const char* 
 
 	//////////////////////////////
 	//check Content-Type
+#ifdef DEBUG_SYSLOG
+		syslog(6,"GetHdr Content-Type:");
+#endif
+
 	h_ctype_ptr = VRT_GetHdr(sp, HDR_REQ, "\015Content-Type:");
 	
 	if(h_ctype_ptr != NULL){
@@ -435,6 +447,10 @@ vmod_parse(struct sess *sp,const char* tgHeadName,unsigned setParam,const char* 
 
 	//////////////////////////////
 	//check Content-Length
+#ifdef DEBUG_SYSLOG
+		syslog(6,"GetHdr Content-Length:");
+#endif
+
 	h_clen_ptr = VRT_GetHdr(sp, HDR_REQ, "\017Content-Length:");
 	if (!h_clen_ptr) {
 		//can't get
