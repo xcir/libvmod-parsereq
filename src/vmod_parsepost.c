@@ -18,7 +18,7 @@
 static int type_htcread = 0;
 
 //#define DEBUG_HTCREAD
-//#define DEBUG_SYSLOG
+#define DEBUG_SYSLOG
 
 //HTC_Read ~3.0.3
 typedef ssize_t HTC_READ302(struct http_conn *htc, void *d, size_t len);
@@ -135,7 +135,7 @@ unsigned url_encode_setHdr(struct sess *sp, char* url,char *head,int *encoded_si
 	return(1);
 }
 
-void decodeForm_multipart(struct sess *sp,char *body,char *tgHead,unsigned parseFile,const char *paramPrefix, unsigned setParam){
+int decodeForm_multipart(struct sess *sp,char *body,char *tgHead,unsigned parseFile,const char *paramPrefix, unsigned setParam){
 	
 	char *prefix;
 	char defPrefix[] = "X-VMODPOST-";
@@ -174,7 +174,7 @@ void decodeForm_multipart(struct sess *sp,char *body,char *tgHead,unsigned parse
 #ifdef DEBUG_SYSLOG
 		syslog(6,"parse:decodeForm_multipart boudary size>255");
 #endif
-		return;
+		return -5;
 	}
 	
 	raw_boundary   +=11;
@@ -222,7 +222,7 @@ void decodeForm_multipart(struct sess *sp,char *body,char *tgHead,unsigned parse
 		tmp                   = name_line_end[idx];
 		name_line_end[idx]    = 0;
 		hsize                 = strlen(sc_name) + prefix_len +1;
-		if(hsize > 255) break;
+		if(hsize > 255) return -5;
 		head[0]               = hsize;
 		head[1]               = 0;
 		snprintf(head +1,255,"%s%s:",prefix,sc_name);
@@ -249,7 +249,7 @@ void decodeForm_multipart(struct sess *sp,char *body,char *tgHead,unsigned parse
 #ifdef DEBUG_SYSLOG
 		syslog(6,"parse:decodeForm_multipart more ws size");
 #endif
-			return ;
+			return -1;
 		}
 
 		if(!basehead){
@@ -278,7 +278,7 @@ void decodeForm_multipart(struct sess *sp,char *body,char *tgHead,unsigned parse
 		if(!url_encode_setHdr(sp,start_body,head,&encoded_size)){
 			//ƒƒ‚ƒŠ‚È‚¢
 			p_body_end[0] = tmp;
-			break;
+			return -1;
 		}
 		encoded_size -= prefix_len;
 		p_body_end[0] = tmp;
@@ -293,7 +293,7 @@ void decodeForm_multipart(struct sess *sp,char *body,char *tgHead,unsigned parse
 #ifdef DEBUG_SYSLOG
 		syslog(6,"parse:decodeForm_multipart head 0 & no set param [OK]");
 #endif
-		return;
+		return 1;
 	}
 
 	//////////////
@@ -310,7 +310,7 @@ void decodeForm_multipart(struct sess *sp,char *body,char *tgHead,unsigned parse
 		syslog(6,"parse:decodeForm_multipart more ws size(2)");
 #endif
 
-			return;
+			return -1;
 		}
 		orig_cv_body = cv_body = (char*)sp->wrk->ws->f;
 		WS_Release(sp->wrk->ws,encoded_size+1);
@@ -349,12 +349,12 @@ void decodeForm_multipart(struct sess *sp,char *body,char *tgHead,unsigned parse
 #ifdef DEBUG_SYSLOG
 		syslog(6,"parse:decodeForm_multipart head 0 [OK]");
 #endif
-		return;
+		return 1;
 	}
 	VRT_SetHdr(sp, HDR_REQ, tgHead, orig_cv_body, vrt_magic_string_end);
-	
+	return 1;
 }
-void decodeForm_urlencoded(struct sess *sp,char *body,const char *paramPrefix){
+int decodeForm_urlencoded(struct sess *sp,char *body,const char *paramPrefix){
 	char head[256];
 	char *sc_eq,*sc_amp;
 	char *tmpbody = body;
@@ -382,7 +382,7 @@ void decodeForm_urlencoded(struct sess *sp,char *body,const char *paramPrefix){
 #ifdef DEBUG_SYSLOG
 		syslog(6,"parse:decodeForm_urlencoded head size > 255");
 #endif
-			return;
+			return -5;
 		}
 		head[0]   = hsize;
 		head[1]   = 0;
@@ -401,6 +401,7 @@ void decodeForm_urlencoded(struct sess *sp,char *body,const char *paramPrefix){
 		sc_amp[0] = tmp;
 		tmpbody   = sc_amp + 1;
 	}
+	return 1;
 }
 int 
 vmod_parse(struct sess *sp,const char* tgHeadName,unsigned setParam,const char* paramPrefix,unsigned parseMulti,unsigned parseFile){
@@ -588,16 +589,17 @@ vmod_parse(struct sess *sp,const char* tgHeadName,unsigned setParam,const char* 
 		syslog(6,"content-size (orig)%d (read)%d",orig_content_length,strlen(body));
 #endif
 
+	int ret = 1;
 	if(multipart){
-		decodeForm_multipart(sp, body,tgHead,parseFile,paramPrefix,setParam);
+		ret = decodeForm_multipart(sp, body,tgHead,parseFile,paramPrefix,setParam);
 	}else{
 		if(tgHead[0] != 0)
 			VRT_SetHdr(sp, HDR_REQ, tgHead, body, vrt_magic_string_end);
 		if(setParam)
-			decodeForm_urlencoded(sp, body,paramPrefix);
+			ret = decodeForm_urlencoded(sp, body,paramPrefix);
 	}
 #ifdef DEBUG_SYSLOG
-		syslog(6,"parse:end");
+		syslog(6,"parse:end %d",ret);
 #endif
-	return 1;
+	return ret;
 }
