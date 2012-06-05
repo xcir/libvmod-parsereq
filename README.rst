@@ -59,6 +59,8 @@ Description
 Example
         ::
 
+                import parsepost;
+
                 if(parsepost.parse("x-raw",true,"p_",true,true) == 1){
                   std.log("raw: " + req.http.x-raw);
                   std.log("submitter: " + req.http.p_submitter);
