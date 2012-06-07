@@ -578,6 +578,20 @@ int decodeForm_multipart(struct sess *sp,char *body){
 
 	return 1;
 }
+const char* vmod_post_body(struct sess *sp){
+	struct vmod_request *c = vmodreq_get(sp);
+	return c->raw_post;
+}
+const char* vmod_get_body(struct sess *sp){
+	struct vmod_request *c = vmodreq_get(sp);
+	return c->raw_get;
+}
+const char* vmod_cookie_body(struct sess *sp){
+	struct vmod_request *c = vmodreq_get(sp);
+	return c->raw_cookie;
+}
+
+
 int decodeForm_urlencoded(struct sess *sp,char *body,enum VMODREQ_TYPE type){
 	char *sc_eq,*sc_amp;
 	char *tmpbody = body;
