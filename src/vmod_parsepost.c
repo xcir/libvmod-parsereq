@@ -307,7 +307,10 @@ const char *vmodreq_header(struct sess *sp, enum VMODREQ_TYPE type, const char *
 //////////////////////////////////////////
 //hook function(miss,pass,pipe)
 static int vmod_Hook_unset_bereq(struct sess *sp){
+//	syslog(6,"unset %s",POST_REQ_HDR);
 	VRT_SetHdr(sp, HDR_BEREQ, POST_REQ_HDR, 0);
+	
+//	syslog(6,"unsetsd %s",VRT_GetHdr(sp, HDR_BEREQ, POST_REQ_HDR));
 	switch(sp->step){
 		case STP_MISS:
 			return(vmod_Hook_miss(sp));
@@ -596,7 +599,7 @@ int decodeForm_urlencoded(struct sess *sp,char *body,enum VMODREQ_TYPE type){
 	char *sc_eq,*sc_amp;
 	char *tmpbody = body;
 	char* tmphead;
-	
+	char tmp,tmp2;
 	struct vmod_request *c = vmodreq_get(sp);
 
 	
@@ -612,6 +615,7 @@ int decodeForm_urlencoded(struct sess *sp,char *body,enum VMODREQ_TYPE type){
 		
 		//////////////////////////////
 		//build head
+		tmp=sc_eq[0];
 		sc_eq[0] = 0;// = -> null
 		
 
@@ -621,6 +625,7 @@ int decodeForm_urlencoded(struct sess *sp,char *body,enum VMODREQ_TYPE type){
 		//////////////////////////////
 		//build body
 		tmpbody   = sc_eq + 1;
+		tmp2=sc_amp[0];
 		sc_amp[0] = 0;// & -> null
 
 		//////////////////////////////
@@ -630,8 +635,8 @@ int decodeForm_urlencoded(struct sess *sp,char *body,enum VMODREQ_TYPE type){
 		vmodreq_sethead(c,type,tmphead,tmpbody);
 		
 		
-		sc_eq[0]  = '=';
-		sc_amp[0] = '&';
+		sc_eq[0]  = tmp;
+		sc_amp[0] = tmp2;
 		tmpbody   = sc_amp + 1;
 	}
 	return 1;
@@ -652,6 +657,7 @@ int vmodreq_cookie_parse(struct sess *sp){
 	char *sc_eq,*sc_amp;
 	char *tmpbody = c->raw_cookie;
 	char* tmphead;
+	char tmp,tmp2;
 	
 	
 
@@ -668,6 +674,7 @@ int vmodreq_cookie_parse(struct sess *sp){
 		
 		//////////////////////////////
 		//build head
+		tmp=sc_eq[0];
 		sc_eq[0] = 0;// = -> null
 		
 
@@ -677,6 +684,7 @@ int vmodreq_cookie_parse(struct sess *sp){
 		//////////////////////////////
 		//build body
 		tmpbody   = sc_eq + 1;
+		tmp2= sc_amp[0];
 		sc_amp[0] = 0;// & -> null
 
 		//////////////////////////////
@@ -686,8 +694,8 @@ int vmodreq_cookie_parse(struct sess *sp){
 		vmodreq_sethead(c,COOKIE,tmphead,tmpbody);
 		
 		
-		sc_eq[0]  = '=';
-		sc_amp[0] = ';';
+		sc_eq[0]  = tmp;
+		sc_amp[0] = tmp2;
 		tmpbody   = sc_amp + 1;
 		while(1){
 //			syslog(6,"[%s]",tmpbody);
