@@ -289,7 +289,7 @@ void vmodreq_sethead(struct vmod_request *c, enum VMODREQ_TYPE type,const char *
 		h->bin = 1;
 	}
 	h->size = size;
-	syslog(6,"name= %s bin= %d",h->key,h->bin);
+//	syslog(6,"name= %s bin= %d",h->key,h->bin);
 	VTAILQ_INSERT_HEAD(&hs->headers, h, list);
 }
 
@@ -470,6 +470,7 @@ unsigned url_encode_setHdr(struct sess *sp, char* url,int urlsize,char *head){
 //	syslog(6,"store-NX->head [%s] [%s]",head,copy);
 	vmodreq_sethead(c,POST,head,copy);
 */	
+	struct vmod_request *c = vmodreq_get(sp);
 	vmodreq_sethead(c,POST,head,url,urlsize);
 
 
