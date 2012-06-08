@@ -388,7 +388,7 @@ ssize_t vmod_HTC_Read(struct worker *w, struct http_conn *htc, void *d, size_t l
 }
 
 
-unsigned __url_encode(char* url,char *copy){
+unsigned __url_encode(char* url,int urlsize,char *copy){
 	/*
 	  base:http://d.hatena.ne.jp/hibinotatsuya/20091128/1259404695
 	*/
@@ -397,7 +397,7 @@ unsigned __url_encode(char* url,char *copy){
 	unsigned char c;
 	char *url_en = copy;
 
-	for(i = 0; i < strlen(pt); ++i){
+	for(i = 0; i < urlsize; ++i){
 		c = *url;
 
 		if((c >= '0' && c <= '9')
@@ -427,10 +427,10 @@ unsigned __url_encode(char* url,char *copy){
 	*url_en = 0;
 	return(1);
 }
-unsigned url_encode_setHdr(struct sess *sp, char* url,char *head){
+unsigned url_encode_setHdr(struct sess *sp, char* url,int urlsize,char *head){
 	char *copy;
 	char buf[3075];
-	int size = 3 * strlen(url) + 3;
+	int size = 3 * urlsize + 3;
 	if(size > 3075){
 		///////////////////////////////////////////////
 		//use ws
@@ -439,7 +439,7 @@ unsigned url_encode_setHdr(struct sess *sp, char* url,char *head){
 #ifdef DEBUG_SYSLOG
 		syslog(6,"parse:url_encode_setHdr more ws size");
 #endif
-
+			WS_Release(sp->wrk->ws,0);
 			return 0;
 		}
 		copy = (char*)sp->wrk->ws->f;
@@ -447,7 +447,7 @@ unsigned url_encode_setHdr(struct sess *sp, char* url,char *head){
 	}else{
 		copy = buf;
 	}
-	__url_encode(url,copy);
+	__url_encode(url,urlsize,copy);
 
 //	*encoded_size += strlen(copy) + head[0] +1;
 	if(size > 3075){
@@ -541,7 +541,7 @@ int decodeForm_multipart(struct sess *sp,char *body){
 		}
 		tmp                   = name_line_end[idx];
 		name_line_end[idx]    = 0;
-		
+//		syslog(6,"head %s",sc_name);
 
 		///////////////////////////////////////////////
 		//filecheck
@@ -558,11 +558,12 @@ int decodeForm_multipart(struct sess *sp,char *body){
 		//url encode & set header
 		p_body_end    = p_end -2;
 		start_body    +=4;
-		tmp2          = p_body_end[0];
+//		tmp2          = p_body_end[0];
 		p_body_end[0] = 0;
 		//bodyをURLエンコードする
 
-		if(!url_encode_setHdr(sp,start_body,sc_name)){
+//		syslog(6,"length %d %d",strlen(start_body),p_body_end-start_body);
+		if(!url_encode_setHdr(sp,start_body,p_body_end - start_body,sc_name)){
 			//メモリない
 			name_line_end[idx]	= tmp;
 			p_body_end[0]		= tmp2;
@@ -570,7 +571,7 @@ int decodeForm_multipart(struct sess *sp,char *body){
 		}
 		
 		name_line_end[idx]		= tmp;
-		p_body_end[0]			= tmp2;
+//		p_body_end[0]			= tmp2;
 
 		///////////////////////////////////////////////
 		//check last boundary
@@ -750,7 +751,7 @@ int vmodreq_post_parse(struct sess *sp){
 	
 	//thinking....
 	if(exec == UNKNOWN) return -4;
-	
+	syslog(6,"AAA");
 	
 	//////////////////////////////
 	//check Content-Length
@@ -776,6 +777,7 @@ int vmodreq_post_parse(struct sess *sp){
 		//use ws
 		int u = WS_Reserve(sp->wrk->ws, 0);
 		if(u < content_length + rxbuf_size + 1){
+			WS_Release(sp->wrk->ws,0);
 			return -1;
 		}
 		body = (char*)sp->wrk->ws->f;
