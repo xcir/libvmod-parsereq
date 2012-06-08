@@ -35,8 +35,6 @@ static vcl_func_f         *vmod_Hook_deliver = NULL;
 
 static pthread_mutex_t    vmod_mutex = PTHREAD_MUTEX_INITIALIZER;
 
-static int vmod_Hook_unset_bereq(struct sess*);
-static int vmod_Hook_unset_deliver(struct sess*);
 
 //////////////////////////////////////////
 //for internal head
@@ -68,13 +66,33 @@ struct vmod_request {
 	char *raw_cookie;
 };
 
-struct vmod_request *vmodreq_get_raw(struct sess*);
-int vmodreq_get_parse(struct sess*);
-int vmodreq_cookie_parse(struct sess*);
 
 
 ////////////////////////////////////////////////////
 //user for parse
 enum VMODREQ_PARSE{URL,MULTI,UNKNOWN};
-int vmodreq_post_parse(struct sess *);
 
+
+
+ssize_t vmod_HTC_Read(struct worker *, struct http_conn *, void *, size_t );
+
+static int vmod_Hook_unset_deliver(struct sess *);
+static int vmod_Hook_unset_bereq(struct sess *);
+
+const char *vmodreq_header(struct sess *, enum VMODREQ_TYPE , const char *);
+void vmodreq_sethead(struct vmod_request *, enum VMODREQ_TYPE ,const char *, const char *,int);
+struct vmod_headers *vmodreq_getheaders(struct vmod_request *, enum VMODREQ_TYPE );
+struct vmod_request *vmodreq_get(struct sess *);
+struct vmod_request *vmodreq_init(struct sess *);
+void vmodreq_init_cookie(struct sess *,struct vmod_request *);
+void vmodreq_init_get(struct sess *,struct vmod_request *);
+void vmodreq_init_post(struct sess *,struct vmod_request *);
+struct vmod_request *vmodreq_get_raw(struct sess *);
+static void vmodreq_free(struct vmod_request *);
+
+int decodeForm_multipart(struct sess *,char *);
+int decodeForm_urlencoded(struct sess *,char *,enum VMODREQ_TYPE );
+int vmodreq_get_parse(struct sess *);
+int vmodreq_cookie_parse(struct sess *);
+int vmodreq_reqbody(struct sess *, char**);
+int vmodreq_post_parse(struct sess *);

@@ -1,8 +1,6 @@
 Module parsepost
 Init init_function
 
-#parse(header, setparam  , prefix , parsemulti , parsefile)
-#Function INT parse(STRING,BOOL,STRING,BOOL,BOOL)
 
 Function STRING post_header(STRING)
 Function STRING get_header(STRING)
