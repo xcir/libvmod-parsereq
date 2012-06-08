@@ -50,8 +50,6 @@ enum VMODREQ_TYPE { POST, GET, COOKIE };
 struct hdr {
 	char *key;
 	char *value;
-	int  size;
-	unsigned bin;
 	VTAILQ_ENTRY(hdr) list;
 };
 
@@ -266,7 +264,7 @@ struct vmod_headers *vmodreq_getheaders(struct vmod_request *c, enum VMODREQ_TYP
 
 ////////////////////////////////////////////////////
 //store value
-void vmodreq_sethead(struct vmod_request *c, enum VMODREQ_TYPE type,const char *key, const char *value,int size)
+void vmodreq_sethead(struct vmod_request *c, enum VMODREQ_TYPE type,const char *key, const char *value)
 {
 	
 	struct hdr *h;
@@ -279,17 +277,10 @@ void vmodreq_sethead(struct vmod_request *c, enum VMODREQ_TYPE type,const char *
 	h->key = strndup(key,strlen(key));
 	AN(h->key);
 	
-	//h->value = strndup(value,strlen(value));
-	h->value = calloc(1,size+1);
+	h->value = strndup(value,strlen(value));
 	AN(h->value);
-	memcpy(h->value,value,size);
-	if(strlen(value)==size){
-		h->bin = 0;
-	}else{
-		h->bin = 1;
-	}
-	h->size = size;
-	syslog(6,"name= %s bin= %d",h->key,h->bin);
+	
+	
 	VTAILQ_INSERT_HEAD(&hs->headers, h, list);
 }
 
@@ -437,7 +428,6 @@ unsigned __url_encode(char* url,int urlsize,char *copy){
 	return(1);
 }
 unsigned url_encode_setHdr(struct sess *sp, char* url,int urlsize,char *head){
-/*	
 	char *copy;
 	char buf[3075];
 	int size = 3 * urlsize + 3;
@@ -469,8 +459,6 @@ unsigned url_encode_setHdr(struct sess *sp, char* url,int urlsize,char *head){
 //	head[strlen(head+1)]=0;
 //	syslog(6,"store-NX->head [%s] [%s]",head,copy);
 	vmodreq_sethead(c,POST,head,copy);
-*/	
-	vmodreq_sethead(c,POST,head,url,urlsize);
 
 
 	return(1);
@@ -645,7 +633,7 @@ int decodeForm_urlencoded(struct sess *sp,char *body,enum VMODREQ_TYPE type){
 		//set header
 		
 //		syslog(6,"store-->head %s %s",tmphead,tmpbody);
-		vmodreq_sethead(c,type,tmphead,tmpbody,strlen(tmpbody));
+		vmodreq_sethead(c,type,tmphead,tmpbody);
 		
 		
 		sc_eq[0]  = tmp;
@@ -704,7 +692,7 @@ int vmodreq_cookie_parse(struct sess *sp){
 		//set header
 		
 //		syslog(6,"store-->head %s %s",tmphead,tmpbody);
-		vmodreq_sethead(c,COOKIE,tmphead,tmpbody,strlen(tmpbody));
+		vmodreq_sethead(c,COOKIE,tmphead,tmpbody);
 		
 		
 		sc_eq[0]  = tmp;
