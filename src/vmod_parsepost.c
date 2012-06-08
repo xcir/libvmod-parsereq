@@ -6,8 +6,6 @@
 
 #include <arpa/inet.h>
 #include <syslog.h>
-#include <poll.h>
-#include <fcntl.h>
 #include <sys/mman.h>
 #include <sys/types.h>
 #include <stdio.h>
@@ -74,6 +72,8 @@ struct vmod_request {
 };
 
 struct vmod_request *vmodreq_get_raw(struct sess*);
+int vmodreq_get_parse(struct sess*);
+int vmodreq_cookie_parse(struct sess*);
 
 //////////////////////////////////////////
 //VMOD
