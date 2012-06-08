@@ -1,17 +1,14 @@
 #include <stdlib.h>
+#include <stdio.h>
+#include <syslog.h>
+
 #include "vcl.h"
 #include "vrt.h"
 #include "bin/varnishd/cache.h"
-#include <time.h>
-
-#include <arpa/inet.h>
-#include <syslog.h>
-#include <sys/mman.h>
-#include <sys/types.h>
-#include <stdio.h>
-#include <config.h>
+#include "config.h"
 #include "vcc_if.h"
 #include "vmod_abi.h"
+
 
 #define POST_REQ_HDR "\025X-VMOD-PARSEPOST-PTR:"
 
