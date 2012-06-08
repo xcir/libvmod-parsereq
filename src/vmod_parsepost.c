@@ -396,87 +396,6 @@ ssize_t vmod_HTC_Read(struct worker *w, struct http_conn *htc, void *d, size_t l
 		
 }
 
-
-unsigned __url_encode(char* url,int urlsize,char *copy){
-	/*
-	  base:http://d.hatena.ne.jp/hibinotatsuya/20091128/1259404695
-	*/
-	int i;
-	char *pt = url;
-	unsigned char c;
-	char *url_en = copy;
-
-	for(i = 0; i < urlsize; ++i){
-		c = *url;
-
-		if((c >= '0' && c <= '9')
-		|| (c >= 'A' && c <= 'Z')
-		|| (c >= 'a' && c <= 'z')
-		|| (c == '\'')
-		|| (c == '*')
-		|| (c == ')')
-		|| (c == '(')
-		|| (c == '-')
-		|| (c == '.')
-		|| (c == '_')){
-			*url_en = c;
-			++url_en;
-		}else if(c == ' '){
-			*url_en = '+';
-			++url_en;
-		}else{
-			*url_en = '%';
-			++url_en;
-			sprintf(url_en, "%02x", c);
-			url_en = url_en + 2;
-		}
-		++url;
-	}
-
-	*url_en = 0;
-	return(1);
-}
-unsigned url_encode_setHdr(struct sess *sp, char* url,int urlsize,char *head){
-/*	
-	char *copy;
-	char buf[3075];
-	int size = 3 * urlsize + 3;
-	if(size > 3075){
-		///////////////////////////////////////////////
-		//use ws
-		int u = WS_Reserve(sp->wrk->ws, 0);
-		if(u < size){
-#ifdef DEBUG_SYSLOG
-		syslog(6,"parse:url_encode_setHdr more ws size");
-#endif
-			WS_Release(sp->wrk->ws,0);
-			return 0;
-		}
-		copy = (char*)sp->wrk->ws->f;
-		///////////////////////////////////////////////
-	}else{
-		copy = buf;
-	}
-	__url_encode(url,urlsize,copy);
-
-//	*encoded_size += strlen(copy) + head[0] +1;
-	if(size > 3075){
-		WS_Release(sp->wrk->ws,strlen(copy)+1);
-	}
-	struct vmod_request *c = vmodreq_get(sp);	
-	
-	
-//	head[strlen(head+1)]=0;
-//	syslog(6,"store-NX->head [%s] [%s]",head,copy);
-	vmodreq_sethead(c,POST,head,copy);
-*/	
-	struct vmod_request *c = vmodreq_get(sp);
-	vmodreq_sethead(c,POST,head,url,urlsize);
-
-
-	return(1);
-}
-
 int decodeForm_multipart(struct sess *sp,char *body){
 	
 
@@ -492,6 +411,7 @@ int decodeForm_multipart(struct sess *sp,char *body){
 	int  ll_u, ll_head_len, ll_size;
 	int  ll_entry_count = 0;
 
+	struct vmod_request *c = vmodreq_get(sp);
 	int u;
 	char *orig_cv_body, *cv_body, *h_val;
 	
@@ -576,12 +496,8 @@ int decodeForm_multipart(struct sess *sp,char *body){
 		//bodyをURLエンコードする
 
 //		syslog(6,"length %d %d",strlen(start_body),p_body_end-start_body);
-		if(!url_encode_setHdr(sp,start_body,p_body_end - start_body,sc_name)){
-			//メモリない
-			name_line_end[idx]	= tmp;
-			p_body_end[0]		= tmp2;
-			return -1;
-		}
+	
+		vmodreq_sethead(c,POST,sc_name,start_body,p_body_end - start_body);		
 		
 		name_line_end[idx]		= tmp;
 //		p_body_end[0]			= tmp2;
@@ -764,7 +680,6 @@ int vmodreq_post_parse(struct sess *sp){
 	
 	//thinking....
 	if(exec == UNKNOWN) return -4;
-	syslog(6,"AAA");
 	
 	//////////////////////////////
 	//check Content-Length
