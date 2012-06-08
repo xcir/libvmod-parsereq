@@ -643,6 +643,76 @@ int vmodreq_cookie_parse(struct sess *sp){
 	return ret;
 }
 
+int vmodreq_reqbody(struct sess *sp, char**body){
+	unsigned long		content_length,orig_content_length;
+	char 				*h_clen_ptr;
+	int					buf_size, rsize;
+	char				buf[1024];
+	enum VMODREQ_PARSE	exec;
+
+	//////////////////////////////
+	//check Content-Length
+	h_clen_ptr = VRT_GetHdr(sp, HDR_REQ, "\017Content-Length:");
+	if (!h_clen_ptr) {
+		//can't get
+		return -2;
+	}
+	orig_content_length = content_length = strtoul(h_clen_ptr, NULL, 10);
+	if (content_length <= 0) {
+		//illegal length
+		return -2;
+	}
+	//////////////////////////////
+	//Check POST data is loaded
+	if(sp->htc->pipeline.b != NULL && Tlen(sp->htc->pipeline) == content_length){
+		//complete read
+		*body = sp->htc->pipeline.b;
+	}else{
+		//incomplete read
+		int rxbuf_size = Tlen(sp->htc->rxbuf);
+		///////////////////////////////////////////////
+		//use ws
+		int u = WS_Reserve(sp->wrk->ws, 0);
+		if(u < content_length + rxbuf_size + 1){
+			WS_Release(sp->wrk->ws,0);
+			return -1;
+		}
+		*body = (char*)sp->wrk->ws->f;
+		memcpy(*body, sp->htc->rxbuf.b, rxbuf_size);
+		sp->htc->rxbuf.b = *body;
+		*body += rxbuf_size;
+		*body[0]= 0;
+		sp->htc->rxbuf.e = *body;
+		WS_Release(sp->wrk->ws,content_length + rxbuf_size + 1);
+		///////////////////////////////////////////////
+		
+		//////////////////////////////
+		//read post data
+		while (content_length) {
+			if (content_length > sizeof(buf)) {
+				buf_size = sizeof(buf) - 1;
+			}
+			else {
+				buf_size = content_length;
+			}
+
+			// read body data into 'buf'
+			//rsize = HTC_Read(sp->htc, buf, buf_size);
+			rsize = vmod_HTC_Read(sp->wrk, sp->htc, buf, buf_size);
+			if (rsize <= 0) {
+				return -3;
+			}
+
+			content_length -= rsize;
+
+			strncat(*body, buf, buf_size);
+		}
+		sp->htc->pipeline.b = *body;
+		sp->htc->pipeline.e = *body + orig_content_length;
+	}
+	return 1;
+}
+
 int vmodreq_post_parse(struct sess *sp){
 
 /*
@@ -652,10 +722,8 @@ int vmodreq_post_parse(struct sess *sp){
 	-3	=error		less content-length
 	-4	=error		unknown or none content-type
 */	
-	unsigned long		content_length,orig_content_length;
-	char 				*h_clen_ptr, *h_ctype_ptr, *body;
-	int					buf_size, rsize;
-	char				buf[1024];
+	char 				*h_ctype_ptr, *body;
+	int					ret;
 	enum VMODREQ_PARSE	exec;
 
 	//////////////////////////////
@@ -680,70 +748,11 @@ int vmodreq_post_parse(struct sess *sp){
 	
 	//thinking....
 	if(exec == UNKNOWN) return -4;
-	
-	//////////////////////////////
-	//check Content-Length
-	h_clen_ptr = VRT_GetHdr(sp, HDR_REQ, "\017Content-Length:");
-	if (!h_clen_ptr) {
-		//can't get
-		return -2;
-	}
-	orig_content_length = content_length = strtoul(h_clen_ptr, NULL, 10);
-	if (content_length <= 0) {
-		//illegal length
-		return -2;
-	}
-	//////////////////////////////
-	//Check POST data is loaded
-	if(sp->htc->pipeline.b != NULL && Tlen(sp->htc->pipeline) == content_length){
-		//complete read
-		body = sp->htc->pipeline.b;
-	}else{
-		//incomplete read
-		int rxbuf_size = Tlen(sp->htc->rxbuf);
-		///////////////////////////////////////////////
-		//use ws
-		int u = WS_Reserve(sp->wrk->ws, 0);
-		if(u < content_length + rxbuf_size + 1){
-			WS_Release(sp->wrk->ws,0);
-			return -1;
-		}
-		body = (char*)sp->wrk->ws->f;
-		memcpy(body, sp->htc->rxbuf.b, rxbuf_size);
-		sp->htc->rxbuf.b = body;
-		body += rxbuf_size;
-		body[0]= 0;
-		sp->htc->rxbuf.e = body;
-		WS_Release(sp->wrk->ws,content_length + rxbuf_size + 1);
-		///////////////////////////////////////////////
-		
-		//////////////////////////////
-		//read post data
-		while (content_length) {
-			if (content_length > sizeof(buf)) {
-				buf_size = sizeof(buf) - 1;
-			}
-			else {
-				buf_size = content_length;
-			}
-
-			// read body data into 'buf'
-			//rsize = HTC_Read(sp->htc, buf, buf_size);
-			rsize = vmod_HTC_Read(sp->wrk, sp->htc, buf, buf_size);
-			if (rsize <= 0) {
-				return -3;
-			}
-
-			content_length -= rsize;
-
-			strncat(body, buf, buf_size);
-		}
-		sp->htc->pipeline.b = body;
-		sp->htc->pipeline.e = body + orig_content_length;
-	}
+	ret = vmodreq_reqbody(sp,&body);
+	if(ret<1) return ret;
 
 	//decode form
-	int ret = 1;
+//	ret = 1;
 	switch(exec){
 		case URL:
 			ret = decodeForm_urlencoded(sp, body,POST);
