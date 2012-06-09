@@ -96,3 +96,6 @@ int vmodreq_get_parse(struct sess *);
 int vmodreq_cookie_parse(struct sess *);
 int vmodreq_reqbody(struct sess *, char**);
 int vmodreq_post_parse(struct sess *);
+
+const char *vmodreq_getheader(struct vmod_request *, enum VMODREQ_TYPE , const char *);
+int vmodreq_getheadersize(struct vmod_request *, enum VMODREQ_TYPE , const char *);

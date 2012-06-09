@@ -1,5 +1,10 @@
 #include "vmod_req.h"
 
+/*
+	todo:
+		urlencode系でのsetheader系がカオスなので見直す
+	
+*/
 //////////////////////////////////////////
 //VMOD
 int
@@ -85,7 +90,6 @@ void vmodreq_init_get(struct sess *sp,struct vmod_request *c){
 	//normalization
 	if(len>1 && c->raw_get[len-1] =='&')
 		c->raw_get[len-1] = 0;
-//	syslog(6,"hohoho %s",c->raw_get);
 }
 
 void vmodreq_init_cookie(struct sess *sp,struct vmod_request *c){
@@ -128,7 +132,6 @@ struct vmod_request *vmodreq_init(struct sess *sp){
 	vmodreq_init_post(sp,c);
 	vmodreq_init_get(sp,c);
 	vmodreq_init_cookie(sp,c);
-
 	//parse get data
 	r = vmodreq_get_parse(sp);
 	r = vmodreq_cookie_parse(sp);
@@ -170,6 +173,7 @@ struct vmod_request *vmodreq_get(struct sess *sp){
 ////////////////////////////////////////////////////
 //get headers
 struct vmod_headers *vmodreq_getheaders(struct vmod_request *c, enum VMODREQ_TYPE type){
+
 	struct vmod_headers *r = NULL;
 	switch(type){
 		case POST:
@@ -189,49 +193,92 @@ struct vmod_headers *vmodreq_getheaders(struct vmod_request *c, enum VMODREQ_TYP
 //store value
 void vmodreq_sethead(struct vmod_request *c, enum VMODREQ_TYPE type,const char *key, const char *value,int size)
 {
-	
+	if((!key || key[0] == NULL) && size ==0) return;
+	//
 	struct hdr *h;
 	struct vmod_headers *hs;
+	const char* nd;
+	int ndsize = 0;
 	hs = vmodreq_getheaders(c,type);
 
 	h = calloc(1, sizeof(struct hdr));
 	AN(h);
-	
 	h->key = strndup(key,strlen(key));
 	AN(h->key);
+	nd = vmodreq_getheader(c,type,key);
+	if(nd){
+		ndsize = vmodreq_getheadersize(c,type,key);
+		h->value = calloc(1,size+2+ndsize);
+		AN(h->value);
+		memcpy(h->value,nd,ndsize);
+		h->value[ndsize]=',';
+		++ndsize;
+		memcpy(h->value + ndsize,value,size);
+		
+	}else{
+		h->value = calloc(1,size+1);
+		AN(h->value);
+		memcpy(h->value,value,size);
+	}
 	
 	//h->value = strndup(value,strlen(value));
-	h->value = calloc(1,size+1);
-	AN(h->value);
-	memcpy(h->value,value,size);
-	if(strlen(value)==size){
+	if(strlen(value)==size+ndsize){
 		h->bin = 0;
 	}else{
 		h->bin = 1;
 	}
-	h->size = size;
-//	syslog(6,"name= %s bin= %d",h->key,h->bin);
+	h->size = size + ndsize;
 	VTAILQ_INSERT_HEAD(&hs->headers, h, list);
 }
 
 ////////////////////////////////////////////////////
 //get header value
-const char *vmodreq_header(struct sess *sp, enum VMODREQ_TYPE type, const char *header)
+int vmodreq_getheadersize(struct vmod_request *c, enum VMODREQ_TYPE type, const char *header)
 {
 	struct hdr *h;
-	const char *r = NULL;
-	struct vmod_request *c;
+	int r = 0;
 
-	c = vmodreq_get(sp);
+	int i=0;
 	struct vmod_headers *hs;
 	hs = vmodreq_getheaders(c,type);
 	VTAILQ_FOREACH(h, &hs->headers, list) {
+		++i;
+//		syslog(6,"---%d %s %s",i,h->key,h->value);
 		if (strcasecmp(h->key, header) == 0) {
-			r = h->value;
+			r = h->size;
 			break;
 		}
 	}
 	return r;
+}
+const char *vmodreq_getheader(struct vmod_request *c, enum VMODREQ_TYPE type, const char *header)
+{
+	struct hdr *h;
+	const char *r = NULL;
+
+//	int i=0;
+	struct vmod_headers *hs;
+	hs = vmodreq_getheaders(c,type);
+	VTAILQ_FOREACH(h, &hs->headers, list) {
+//		++i;
+//		syslog(6,"---%d key=[%s] val=[%s] hk=[%s]",i,h->key,h->value,header);
+		if(!h->key && strcasecmp("", header) == 0){
+//			syslog(6,"ma:null");
+			r = h->value;
+			break;
+		}else if (strcasecmp(h->key, header) == 0) {
+			r = h->value;
+			break;
+		}
+	}
+//	syslog(6,"ret %s = %s",header,r);
+	return r;
+}
+
+const char *vmodreq_header(struct sess *sp, enum VMODREQ_TYPE type, const char *header)
+{
+	struct vmod_request *c = vmodreq_get(sp);
+	return vmodreq_getheader(c,type,header);
 }
 
 //////////////////////////////////////////
@@ -259,7 +306,6 @@ static int vmod_Hook_unset_bereq(struct sess *sp){
 //hook function(deliver)
 static int vmod_Hook_unset_deliver(struct sess *sp){
 	int ret = vmod_Hook_deliver(sp);
-
 	struct vmod_request *c;
 	c = vmodreq_get_raw(sp);
 	if(c)
@@ -453,14 +499,28 @@ int decodeForm_urlencoded(struct sess *sp,char *body,enum VMODREQ_TYPE type){
 	char tmp,tmp2;
 	struct vmod_request *c = vmodreq_get(sp);
 
-	
 	while(1){
+		if(!tmpbody[0] || strlen(tmpbody)==0) break;
+//		syslog(6,"------------------------>input [%s] %d",tmpbody,strlen(tmpbody));
+		sc_eq = strchr(tmpbody,'=');
+		sc_amp = strchr(tmpbody,'&');
 		//////////////////////////////
 		//search word
-		if(!(sc_eq = strchr(tmpbody,'='))){
-			break;
+		if(sc_amp < sc_eq && sc_amp){
+			
+			sc_eq=NULL;
 		}
-		if(!(sc_amp = strchr(tmpbody,'&'))){
+		if(!sc_eq && !sc_amp){
+			vmodreq_sethead(c,type,tmpbody,"",0);
+			break;
+		}else if(!sc_eq){
+			sc_amp[0] = 0;// & -> null
+			vmodreq_sethead(c,type,tmpbody,"",0);
+			sc_amp[0] = tmp2;
+			tmpbody =sc_amp+1;
+			continue;
+		}
+		if(!sc_amp){
 			sc_amp = sc_eq + strlen(tmpbody);
 		}
 		
@@ -471,6 +531,7 @@ int decodeForm_urlencoded(struct sess *sp,char *body,enum VMODREQ_TYPE type){
 		
 
 		tmphead = tmpbody;
+//		syslog(6,"----------------NOWPNTB %s ;%s ;%s ;%s",tmphead,tmpbody,sc_eq,sc_amp);
 		
 
 		//////////////////////////////
@@ -484,7 +545,6 @@ int decodeForm_urlencoded(struct sess *sp,char *body,enum VMODREQ_TYPE type){
 		
 //		syslog(6,"store-->head %s %s",tmphead,tmpbody);
 		vmodreq_sethead(c,type,tmphead,tmpbody,strlen(tmpbody));
-		
 		
 		sc_eq[0]  = tmp;
 		sc_amp[0] = tmp2;
@@ -665,6 +725,7 @@ int vmodreq_post_parse(struct sess *sp){
 	}else{
 		//none support type
 		exec = UNKNOWN;
+//		syslog(6,"UNK");
 	}
 	
 	//thinking....

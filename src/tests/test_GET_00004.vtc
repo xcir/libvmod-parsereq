@@ -1,0 +1,29 @@
+varnishtest "GET"
+
+server s1 {
+       rxreq
+       txresp
+} -start
+
+varnish v1 -vcl+backend {
+	import parsepost from "${vmod_topbuild}/src/.libs/libvmod_parsepost.so";
+
+	sub vcl_recv {
+	}
+	sub vcl_deliver{
+		set resp.http.a        = parsepost.get_header("a");
+		set resp.http.b        = parsepost.get_header("b");
+		set resp.http.c        = parsepost.get_header("c");
+		set resp.http.d        = parsepost.get_header("d");
+		set resp.http.none     = parsepost.get_header("");
+		set resp.http.amulti  = parsepost.get_header("a[]");
+	}
+} -start
+
+client c1 {
+	txreq -req GET -url "/&"
+	rxresp
+
+}
+
+client c1 -run
