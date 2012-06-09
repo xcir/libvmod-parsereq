@@ -100,6 +100,10 @@ Return value
 	STRING
 Description
 	get (get,post,cookie) raw data.
+	
+	this function is dangerous.
+	raw data is not escape.
+	if you want to use ,require a thorough understanding of risk.
 
 Example
         ::
