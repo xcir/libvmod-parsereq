@@ -9,4 +9,5 @@ Function STRING cookie_header(STRING)
 Function STRING post_body()
 Function STRING get_body()
 Function STRING cookie_body()
+Function VOID   init()
 

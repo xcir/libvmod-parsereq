@@ -63,8 +63,11 @@ struct vmod_request {
 	struct vmod_headers* cookie;
 	
 	char *raw_post;
+	int  size_post;
 	char *raw_get;
+	int  size_get;
 	char *raw_cookie;
+	int  size_cookie;
 };
 
 
@@ -92,13 +95,13 @@ struct vmod_request *vmodreq_get_raw(struct sess *);
 static void vmodreq_free(struct vmod_request *);
 
 int decodeForm_multipart(struct sess *,char *);
-int decodeForm_urlencoded(struct sess *,char *,enum VMODREQ_TYPE );
+int decodeForm_urlencoded(struct sess *,char *,enum VMODREQ_TYPE ,int);
 int vmodreq_get_parse(struct sess *);
 int vmodreq_cookie_parse(struct sess *);
-int vmodreq_reqbody(struct sess *, char**);
+int vmodreq_reqbody(struct sess *, char**,int*);
 int vmodreq_post_parse(struct sess *);
 
 const char *vmodreq_getheader(struct vmod_request *, enum VMODREQ_TYPE , const char *);
 int vmodreq_getheadersize(struct vmod_request *, enum VMODREQ_TYPE , const char *);
 struct hdr *vmodreq_getrawheader(struct vmod_request *, enum VMODREQ_TYPE , const char *);
-int vmodreq_decode_urlencode(struct sess *,char *,enum VMODREQ_TYPE,char,char);
+int vmodreq_decode_urlencode(struct sess *,char *,enum VMODREQ_TYPE,char,char,int);

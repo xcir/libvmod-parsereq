@@ -72,6 +72,7 @@ void vmodreq_init_post(struct sess *sp,struct vmod_request *c){
 	if(sp->htc->pipeline.b == NULL) return;
 	int len = Tlen(sp->htc->pipeline);
 	c->raw_post = calloc(1, len +1);
+	c->size_post = len;
 	c->raw_post[len]=0;
 	memcpy(c->raw_post,sp->htc->pipeline.b,len);
 
@@ -86,6 +87,7 @@ void vmodreq_init_get(struct sess *sp,struct vmod_request *c){
 	int len = strlen(sc_q);
 //	syslog(6,"[%s]",sc_q);
 	c->raw_get = calloc(1, len +1);
+	c->size_get = len;
 
 	c->raw_get[len]=0;
 	memcpy(c->raw_get,sc_q,len);
@@ -99,6 +101,7 @@ void vmodreq_init_cookie(struct sess *sp,struct vmod_request *c){
 	if(!r) return;
 	int len = strlen(r);
 	c->raw_cookie = calloc(1, len +1);
+	c->size_cookie = len;
 	c->raw_cookie[len]=0;
 	memcpy(c->raw_cookie,r,len);
 }
@@ -161,6 +164,8 @@ struct vmod_request *vmodreq_init(struct sess *sp){
 	}
 	return c;
 }
+
+
 
 ////////////////////////////////////////////////////
 //get structure pointer
@@ -285,7 +290,7 @@ const char *vmodreq_getheader(struct vmod_request *c, enum VMODREQ_TYPE type, co
 	struct hdr *h;
 	char *r = NULL;
 	h = vmodreq_getrawheader(c,type,header);
-
+	
 	if(h) r = h->value;
 	
 	return r;
@@ -359,13 +364,7 @@ ssize_t vmod_HTC_Read(struct worker *w, struct http_conn *htc, void *d, size_t l
 		}else{
 			type_htcread = 2;
 		}
-#ifdef DEBUG_SYSLOG
-		syslog(6,"HTC_Read,init:%d",type_htcread);
-#endif
 	}
-#ifdef DEBUG_SYSLOG
-	syslog(6,"HTC_Read,exec:%d",type_htcread);
-#endif
 	void * hr = (void *)HTC_Read;
 	switch(type_htcread){
 		case 1:
@@ -400,16 +399,10 @@ int decodeForm_multipart(struct sess *sp,char *body){
 	
 	//////////////////////////////
 	//get boundary
-#ifdef DEBUG_SYSLOG
-		syslog(6,"GetHdr Content-Type:");
-#endif
 
 	h_ctype_ptr = VRT_GetHdr(sp, HDR_REQ, "\015Content-Type:");
 	raw_boundary = strstr(h_ctype_ptr,"; boundary=");
 	if(!raw_boundary || strlen(raw_boundary) > 255){
-#ifdef DEBUG_SYSLOG
-		syslog(6,"parse:decodeForm_multipart boudary size>255");
-#endif
 		return -5;
 	}
 	
@@ -509,17 +502,19 @@ const char* vmod_cookie_body(struct sess *sp){
 	return c->raw_cookie;
 }
 
-int vmodreq_decode_urlencode(struct sess *sp,char *body,enum VMODREQ_TYPE type,char eq,char amp){
+int vmodreq_decode_urlencode(struct sess *sp,char *body,enum VMODREQ_TYPE type,char eq,char amp,int size){
 	
 	char *sc_eq,*sc_amp;
 	char *tmpbody = body;
 	char* tmphead;
 	char tmp,tmp2;
 	struct vmod_request *c = vmodreq_get(sp);
+	char *start;
 
 	while(1){
+		if(size<0) break;
+		start = tmpbody;
 		if(!tmpbody[0] || strlen(tmpbody)==0) break;
-//		syslog(6,"------------------------>input [%s] %d",tmpbody,strlen(tmpbody));
 		sc_eq = strchr(tmpbody,eq);
 		sc_amp = strchr(tmpbody,amp);
 		//////////////////////////////
@@ -537,6 +532,7 @@ int vmodreq_decode_urlencode(struct sess *sp,char *body,enum VMODREQ_TYPE type,c
 			vmodreq_sethead(c,type,tmpbody,"",0);
 			sc_amp[0] = tmp2;
 			tmpbody =sc_amp+1;
+			size -= tmpbody - start;
 			continue;
 		}
 		if(!sc_amp){
@@ -578,33 +574,34 @@ int vmodreq_decode_urlencode(struct sess *sp,char *body,enum VMODREQ_TYPE type,c
 				break;
 			}
 		}
+		size -= tmpbody - start;
 
 	}
 	return 1;
 
 }
 
-int decodeForm_urlencoded(struct sess *sp,char *body,enum VMODREQ_TYPE type){
-	return vmodreq_decode_urlencode(sp,body,type,'=','&');
+int decodeForm_urlencoded(struct sess *sp,char *body,enum VMODREQ_TYPE type,int size){
+	return vmodreq_decode_urlencode(sp,body,type,'=','&',size);
 }
 int vmodreq_cookie_parse(struct sess *sp){
 	struct vmod_request *c = vmodreq_get(sp);
 	if(!c->raw_cookie) return 1;
 
-	return vmodreq_decode_urlencode(sp,c->raw_cookie,COOKIE,'=',';');
+	return vmodreq_decode_urlencode(sp,c->raw_cookie,COOKIE,'=',';',c->size_cookie);
 }
 int vmodreq_get_parse(struct sess *sp){
 	int ret=1;
 	struct vmod_request *c = vmodreq_get(sp);
 	if(c->raw_get)
-		ret = decodeForm_urlencoded(sp, c->raw_get,GET);
+		ret = decodeForm_urlencoded(sp, c->raw_get,GET,c->size_get);
 	return ret;
 }
 
 
 
-int vmodreq_reqbody(struct sess *sp, char**body){
-	unsigned long		content_length,orig_content_length;
+int vmodreq_reqbody(struct sess *sp, char**body,int *orig_content_length){
+	unsigned long		content_length;
 	char 				*h_clen_ptr;
 	int					buf_size, rsize;
 	char				buf[1024];
@@ -617,7 +614,7 @@ int vmodreq_reqbody(struct sess *sp, char**body){
 		//can't get
 		return -2;
 	}
-	orig_content_length = content_length = strtoul(h_clen_ptr, NULL, 10);
+	*orig_content_length = content_length = strtoul(h_clen_ptr, NULL, 10);
 	if (content_length <= 0) {
 		//illegal length
 		return -2;
@@ -668,7 +665,7 @@ int vmodreq_reqbody(struct sess *sp, char**body){
 			strncat(*body, buf, buf_size);
 		}
 		sp->htc->pipeline.b = *body;
-		sp->htc->pipeline.e = *body + orig_content_length;
+		sp->htc->pipeline.e = *body + *orig_content_length;
 	}
 	return 1;
 }
@@ -683,12 +680,12 @@ int vmodreq_post_parse(struct sess *sp){
 	-4	=error		unknown or none content-type
 */	
 	char 				*h_ctype_ptr, *body;
-	int					ret;
+	int					ret,content_length;
 	enum VMODREQ_PARSE	exec;
+	
 
 	//////////////////////////////
 	//check Content-Type
-
 	h_ctype_ptr = VRT_GetHdr(sp, HDR_REQ, "\015Content-Type:");
 	
 	if(h_ctype_ptr != NULL){
@@ -704,19 +701,17 @@ int vmodreq_post_parse(struct sess *sp){
 	}else{
 		//none support type
 		exec = UNKNOWN;
-//		syslog(6,"UNK");
 	}
-	
 	//thinking....
 	if(exec == UNKNOWN) return -4;
-	ret = vmodreq_reqbody(sp,&body);
+	ret = vmodreq_reqbody(sp,&body,&content_length);
 	if(ret<1) return ret;
 
 	//decode form
 //	ret = 1;
 	switch(exec){
 		case URL:
-			ret = decodeForm_urlencoded(sp, body,POST);
+			ret = decodeForm_urlencoded(sp, body,POST,content_length);
 			break;
 		case MULTI:
 			ret = decodeForm_multipart(sp, body);
@@ -727,4 +722,7 @@ int vmodreq_post_parse(struct sess *sp){
 	}
 	return ret;
 
+}
+void vmod_init(struct sess *sp){
+	vmodreq_get(sp);
 }
