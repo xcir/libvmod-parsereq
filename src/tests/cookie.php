@@ -2,12 +2,12 @@
 
 $l = <<< EOT
 query	a	b	c	d	none	amulti
-a=b; 	"b"					
+a=b;	"b"					
 a=b; b=cdef; c=あ	"b"	"cdef"	"あ"			
 a=b=c=d; b=c	"b=c=d"	"c"				
 ;;a=b;;b=c;;;	"b"	"c"				
 a=a; a=b	"a,b"					
-a==b; 	"=b"					
+a==b;	"=b"					
 a=b	"b"					
 ;=;=;=						
 ;=;=;==					"="	
@@ -34,13 +34,15 @@ varnish v1 -vcl+backend {
 		set resp.http.d        = parsepost.cookie_header("d");
 		set resp.http.none     = parsepost.cookie_header("");
 		set resp.http.amulti   = parsepost.cookie_header("a[]");
+		set resp.http.raw      = parsepost.cookie_body();
 	}
 } -start
 
 client c1 {
 	txreq -req GET -url "/" -hdr "Cookie: %query%"
 	rxresp
-	%pat%
+%pat%
+	expect resp.http.raw  == "%query%"
 
 }
 

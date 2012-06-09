@@ -4,7 +4,7 @@
 	todo:
 		urlencode系でのsetheader系がカオスなので見直す
 		vmodreq_setheadがカオスってる
-	
+		urlencode系で最大サイズをもらってからNULLで終了しない（クッキーで妙なの送られてきた時の対策(
 */
 //////////////////////////////////////////
 //VMOD
@@ -215,8 +215,7 @@ void vmodreq_sethead(struct vmod_request *c, enum VMODREQ_TYPE type,const char *
 	}
 
 	if(nh){
-		//ここリークしてる->なおした
-		//vmodreq_getrawheader
+		//array key
 		ndsize = h->size;
 		char *tmp= calloc(1,size + 2 + ndsize);
 		AN(tmp);
@@ -504,11 +503,13 @@ const char* vmod_get_body(struct sess *sp){
 }
 const char* vmod_cookie_body(struct sess *sp){
 	struct vmod_request *c = vmodreq_get(sp);
+//	syslog(6,"ckck [%s] %d",c->raw_cookie,strlen(c->raw_cookie));
+
 	return c->raw_cookie;
 }
 
 int vmodreq_decode_urlencode(struct sess *sp,char *body,enum VMODREQ_TYPE type,char eq,char amp){
-	//todo;最大サイズをもらってからNULLで終了しない（クッキーで妙なの送られてきた時の対策
+	
 	char *sc_eq,*sc_amp;
 	char *tmpbody = body;
 	char* tmphead;
@@ -530,6 +531,7 @@ int vmodreq_decode_urlencode(struct sess *sp,char *body,enum VMODREQ_TYPE type,c
 			vmodreq_sethead(c,type,tmpbody,"",0);
 			break;
 		}else if(!sc_eq){
+			tmp2 = sc_amp[0];
 			sc_amp[0] = 0;// & -> null
 			vmodreq_sethead(c,type,tmpbody,"",0);
 			sc_amp[0] = tmp2;

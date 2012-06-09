@@ -17,15 +17,17 @@ varnish v1 -vcl+backend {
 		set resp.http.d        = parsepost.cookie_header("d");
 		set resp.http.none     = parsepost.cookie_header("");
 		set resp.http.amulti   = parsepost.cookie_header("a[]");
+		set resp.http.raw      = parsepost.cookie_body();
 	}
 } -start
 
 client c1 {
 	txreq -req GET -url "/" -hdr "Cookie: a[]=a; b=c;a[]=b"
 	rxresp
-		expect resp.http.b  == "c"
+	expect resp.http.b  == "c"
 	expect resp.http.amulti  == "a,b"
 
+	expect resp.http.raw  == "a[]=a; b=c;a[]=b"
 
 }
 
