@@ -2,26 +2,20 @@
 
 $l = <<< EOT
 query	a	b	c	d	none	amulti
-/?						
-/?a=b	"b"					
-/?a=b&b=cdef&c=d&d=あ	"b"	"cdef"	"d"	"あ"		
-/&						
-/?a&b=c&c&d	""	"c"	""	""		
-/?&						
-/?&&						
-/?=&						
-/?==						
-/?&=&=&=						
-/?&=&=&=a					"a"	
-/?&=&=&a=b	"b"					
-/?a=a=a	"a=a"					
-/?a=c&a=b	"c,b"					
-/?a[]=a&a[]=a&a[]=c						"a,a,c"
-/?a=a&a=b&b=c	"a,b"	"c"				
+a=b; 	"b"					
+a=b; b=cdef; c=あ	"b"	"cdef"	"あ"			
+a=b=c=d; b=c	"b=c=d"	"c"				
+;;a=b;;b=c;;;	"b"	"c"				
+a=a; a=b	"a,b"					
+a==b; 	"=b"					
+a=b	"b"					
+;=;=;=						
+;=;=;==					"="	
+a[]=a; b=c;a[]=b		"c"				"a,b"
 EOT;
 
 $base = <<< EOT
-varnishtest "GET"
+varnishtest "COOKIE"
 
 server s1 {
        rxreq
@@ -34,19 +28,20 @@ varnish v1 -vcl+backend {
 	sub vcl_recv {
 	}
 	sub vcl_deliver{
-		set resp.http.a        = parsepost.get_header("a");
-		set resp.http.b        = parsepost.get_header("b");
-		set resp.http.c        = parsepost.get_header("c");
-		set resp.http.d        = parsepost.get_header("d");
-		set resp.http.none     = parsepost.get_header("");
-		set resp.http.amulti  = parsepost.get_header("a[]");
+		set resp.http.a        = parsepost.cookie_header("a");
+		set resp.http.b        = parsepost.cookie_header("b");
+		set resp.http.c        = parsepost.cookie_header("c");
+		set resp.http.d        = parsepost.cookie_header("d");
+		set resp.http.none     = parsepost.cookie_header("");
+		set resp.http.amulti   = parsepost.cookie_header("a[]");
 	}
 } -start
 
 client c1 {
-	txreq -req GET -url "%query%"
+	txreq -req GET -url "/" -hdr "Cookie: %query%"
 	rxresp
-%pat%
+	%pat%
+
 }
 
 client c1 -run
@@ -80,7 +75,7 @@ for($i = 1 ;$i<$cnt;$i++){
 $i=0;
 foreach($tc as $v){
 	$i++;
-	$fn = sprintf('test_GET_%05d.vtc', $i);
+	$fn = sprintf('test_COOKIE_%05d.vtc', $i);
 	file_put_contents($fn,$v);
 }
 

@@ -217,11 +217,11 @@ void vmodreq_sethead(struct vmod_request *c, enum VMODREQ_TYPE type,const char *
 	if(nh){
 		//ここリークしてる->なおした
 		//vmodreq_getrawheader
-		ndsize = nh->size;
+		ndsize = h->size;
 		char *tmp= calloc(1,size + 2 + ndsize);
 		AN(tmp);
-		memcpy(tmp,nh->value,ndsize);
-		free(nh->value);
+		memcpy(tmp,h->value,ndsize);
+		free(h->value);
 		
 		h->value =tmp;
 		h->value[ndsize]=',';
@@ -507,8 +507,8 @@ const char* vmod_cookie_body(struct sess *sp){
 	return c->raw_cookie;
 }
 
-
-int decodeForm_urlencoded(struct sess *sp,char *body,enum VMODREQ_TYPE type){
+int vmodreq_decode_urlencode(struct sess *sp,char *body,enum VMODREQ_TYPE type,char eq,char amp){
+	//todo;最大サイズをもらってからNULLで終了しない（クッキーで妙なの送られてきた時の対策
 	char *sc_eq,*sc_amp;
 	char *tmpbody = body;
 	char* tmphead;
@@ -518,8 +518,8 @@ int decodeForm_urlencoded(struct sess *sp,char *body,enum VMODREQ_TYPE type){
 	while(1){
 		if(!tmpbody[0] || strlen(tmpbody)==0) break;
 //		syslog(6,"------------------------>input [%s] %d",tmpbody,strlen(tmpbody));
-		sc_eq = strchr(tmpbody,'=');
-		sc_amp = strchr(tmpbody,'&');
+		sc_eq = strchr(tmpbody,eq);
+		sc_amp = strchr(tmpbody,amp);
 		//////////////////////////////
 		//search word
 		if(sc_amp < sc_eq && sc_amp){
@@ -565,8 +565,30 @@ int decodeForm_urlencoded(struct sess *sp,char *body,enum VMODREQ_TYPE type){
 		sc_eq[0]  = tmp;
 		sc_amp[0] = tmp2;
 		tmpbody   = sc_amp + 1;
+		while(1){
+			//クッキー向け（Keyの先頭にスペースが入ることがあるんで
+//			syslog(6,"[%s]",tmpbody);
+			if(tmpbody[0]==0) break;
+			if(tmpbody[0] ==' '){
+				++tmpbody;
+			}else{
+				break;
+			}
+		}
+
 	}
 	return 1;
+
+}
+
+int decodeForm_urlencoded(struct sess *sp,char *body,enum VMODREQ_TYPE type){
+	return vmodreq_decode_urlencode(sp,body,type,'=','&');
+}
+int vmodreq_cookie_parse(struct sess *sp){
+	struct vmod_request *c = vmodreq_get(sp);
+	if(!c->raw_cookie) return 1;
+
+	return vmodreq_decode_urlencode(sp,c->raw_cookie,COOKIE,'=',';');
 }
 int vmodreq_get_parse(struct sess *sp){
 	int ret=1;
@@ -576,69 +598,7 @@ int vmodreq_get_parse(struct sess *sp){
 	return ret;
 }
 
-int vmodreq_cookie_parse(struct sess *sp){
-	int ret=1;
-	struct vmod_request *c = vmodreq_get(sp);
-	if(!c->raw_cookie) return ret;
-	
-	char *sc_eq,*sc_amp;
-	char *tmpbody = c->raw_cookie;
-	char* tmphead;
-	char tmp,tmp2;
-	
-	
 
-	
-	while(1){
-		//////////////////////////////
-		//search word
-		if(!(sc_eq = strchr(tmpbody,'='))){
-			break;
-		}
-		if(!(sc_amp = strchr(tmpbody,';'))){
-			sc_amp = sc_eq + strlen(tmpbody);
-		}
-		
-		//////////////////////////////
-		//build head
-		tmp=sc_eq[0];
-		sc_eq[0] = 0;// = -> null
-		
-
-		tmphead = tmpbody;
-		
-
-		//////////////////////////////
-		//build body
-		tmpbody   = sc_eq + 1;
-		tmp2= sc_amp[0];
-		sc_amp[0] = 0;// & -> null
-
-		//////////////////////////////
-		//set header
-		
-//		syslog(6,"store-->head %s %s",tmphead,tmpbody);
-		vmodreq_sethead(c,COOKIE,tmphead,tmpbody,strlen(tmpbody));
-		
-		
-		sc_eq[0]  = tmp;
-		sc_amp[0] = tmp2;
-		tmpbody   = sc_amp + 1;
-		while(1){
-//			syslog(6,"[%s]",tmpbody);
-			if(tmpbody[0]==0)break;
-			if(tmpbody[0] ==' '){
-				++tmpbody;
-			}else{
-				break;
-			}
-		}
-	}
-	return 1;
-	
-	
-	return ret;
-}
 
 int vmodreq_reqbody(struct sess *sp, char**body){
 	unsigned long		content_length,orig_content_length;
