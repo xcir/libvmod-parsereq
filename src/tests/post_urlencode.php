@@ -45,7 +45,7 @@ varnish v1 -vcl+backend {
 } -start
 
 client c1 {
-	txreq -req POST -url "/" -hdr "Content-Type: application/x-www-form-urlencoded" -body "%query%"
+	txreq -req POST -url "/" -hdr "Content-Type: application/x-www-form-urlencoded%suf%" -body "%query%"
 	rxresp
 %pat%
 	%query2%
@@ -67,6 +67,9 @@ $cnt=count($nsl);
 $key =&$nsl[0];
 $tc=array();
 for($i = 1 ;$i<$cnt;$i++){
+	$suf="";// charset=UTF-8
+	if( $i % 2 == 0)
+		$suf="; charset=UTF-8";
 	$val =&$nsl[$i];
 	$nc = count($val);
 	
@@ -85,7 +88,7 @@ for($i = 1 ;$i<$cnt;$i++){
 	}
 	$q="expect resp.http.raw  == \"{$val[0]}\"";$q="expect resp.http.raw  == \"{$val[0]}\"";
 
-	$tc[]=str_replace('%query2%',$q,str_replace("%pat%",$ret,str_replace("%query%",$val[0],$base)));
+	$tc[]=str_replace('%suf%',$suf,str_replace('%query2%',$q,str_replace("%pat%",$ret,str_replace("%query%",$val[0],$base))));
 }
 $i=0;
 foreach($tc as $v){

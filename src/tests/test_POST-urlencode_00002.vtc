@@ -23,7 +23,7 @@ varnish v1 -vcl+backend {
 } -start
 
 client c1 {
-	txreq -req POST -url "/" -hdr "Content-Type: application/x-www-form-urlencoded" -body "a=b"
+	txreq -req POST -url "/" -hdr "Content-Type: application/x-www-form-urlencoded; charset=UTF-8" -body "a=b"
 	rxresp
 	expect resp.http.a  == "b"
 

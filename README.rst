@@ -30,12 +30,12 @@ Prototype
         ::
 
                 init()
-Parameter
-        ::
 
-	
+Parameter
+
 Return value
 	void
+
 Description
 	initialize.
 	
@@ -51,7 +51,7 @@ Example
                 }
 
 XXX_header (XXX=post,get,cookie)
--------------
+-----------------------------------
 
 Prototype
         ::
@@ -83,7 +83,7 @@ Example
                 hoge: hogevalue
 
 XXX_body (XXX=post,get,cookie)
--------------
+-----------------------------------
 
 Prototype
         ::
@@ -91,13 +91,12 @@ Prototype
                 post_body()
                 get_body()
                 cookie_body()
+
 Parameter
-        ::
 
-
-	
 Return value
 	STRING
+
 Description
 	get (get,post,cookie) raw data.
 	
