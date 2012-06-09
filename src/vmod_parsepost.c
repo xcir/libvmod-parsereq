@@ -200,7 +200,7 @@ struct vmod_headers *vmodreq_getheaders(struct vmod_request *c, enum VMODREQ_TYP
 //store value
 void vmodreq_sethead(struct vmod_request *c, enum VMODREQ_TYPE type,const char *key, const char *value,int size)
 {
-	if((!key || key[0] == NULL) && size ==0) return;
+	if((!key || key[0] == 0) && size ==0) return;
 	struct hdr *nh;
 
 	//
@@ -252,6 +252,67 @@ void vmodreq_sethead(struct vmod_request *c, enum VMODREQ_TYPE type,const char *
 
 ////////////////////////////////////////////////////
 //get header value
+
+void vmod_post_seek_reset(struct sess *sp){
+	vmodreq_seek_reset(sp,POST);
+}
+void vmod_get_seek_reset(struct sess *sp){
+	vmodreq_seek_reset(sp,GET);
+}
+void vmod_cookie_seek_reset(struct sess *sp){
+	vmodreq_seek_reset(sp,COOKIE);
+}
+
+const char* vmod_get_read_keylist(struct sess *sp){
+	return vmodreq_seek(sp,GET);
+}
+const char* vmod_post_read_keylist(struct sess *sp){
+	return vmodreq_seek(sp,POST);
+}
+const char* vmod_cookie_read_keylist(struct sess *sp){
+	return vmodreq_seek(sp,COOKIE);
+}
+
+void vmodreq_seek_reset(struct sess *sp, enum VMODREQ_TYPE type)
+{
+	struct vmod_request *c = vmodreq_get(sp);
+	struct vmod_headers *hs= vmodreq_getheaders(c,type);
+	hs->seek = NULL;
+}
+
+const char *vmodreq_seek(struct sess *sp, enum VMODREQ_TYPE type)
+{
+	struct vmod_request *c = vmodreq_get(sp);
+	struct hdr *h;
+	struct hdr *r = NULL;
+
+	struct vmod_headers *hs;
+	hs = vmodreq_getheaders(c,type);
+	char * seh = hs->seek;
+
+	
+	VTAILQ_FOREACH(h, &hs->headers, list) {
+		if(seh == NULL){
+			r = h;
+			break;
+		}
+		if(!h->key && strcasecmp("", seh) == 0){
+			seh = NULL;
+			continue;
+		}else if (strcasecmp(h->key, seh) == 0) {
+			seh = NULL;
+			continue;
+		}
+	}
+	if(!r){
+		return NULL;
+	}
+	hs->seek = r->key;
+	
+	return r->key;
+}
+
+
 struct hdr *vmodreq_getrawheader(struct vmod_request *c, enum VMODREQ_TYPE type, const char *header)
 {
 	struct hdr *h;

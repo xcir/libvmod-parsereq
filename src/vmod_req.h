@@ -52,6 +52,7 @@ struct hdr {
 struct vmod_headers {
 	unsigned			magic;
 #define VMOD_HEADERS_MAGIC 0x8d4d29ac
+	char *seek;
 	VTAILQ_HEAD(, hdr) headers;
 };
 
@@ -64,8 +65,10 @@ struct vmod_request {
 	
 	char *raw_post;
 	int  size_post;
+
 	char *raw_get;
 	int  size_get;
+	
 	char *raw_cookie;
 	int  size_cookie;
 };
@@ -105,3 +108,7 @@ const char *vmodreq_getheader(struct vmod_request *, enum VMODREQ_TYPE , const c
 int vmodreq_getheadersize(struct vmod_request *, enum VMODREQ_TYPE , const char *);
 struct hdr *vmodreq_getrawheader(struct vmod_request *, enum VMODREQ_TYPE , const char *);
 int vmodreq_decode_urlencode(struct sess *,char *,enum VMODREQ_TYPE,char,char,int);
+
+
+const char *vmodreq_seek(struct sess *, enum VMODREQ_TYPE );
+void vmodreq_seek_reset(struct sess *, enum VMODREQ_TYPE );
