@@ -45,6 +45,7 @@ struct hdr {
 	char *value;
 	int  size;
 	unsigned bin;
+	unsigned array;
 	VTAILQ_ENTRY(hdr) list;
 };
 
@@ -99,3 +100,4 @@ int vmodreq_post_parse(struct sess *);
 
 const char *vmodreq_getheader(struct vmod_request *, enum VMODREQ_TYPE , const char *);
 int vmodreq_getheadersize(struct vmod_request *, enum VMODREQ_TYPE , const char *);
+struct hdr *vmodreq_getrawheader(struct vmod_request *, enum VMODREQ_TYPE , const char *);

@@ -3,6 +3,7 @@
 /*
 	todo:
 		urlencode系でのsetheader系がカオスなので見直す
+		vmodreq_setheadがカオスってる
 	
 */
 //////////////////////////////////////////
@@ -194,27 +195,39 @@ struct vmod_headers *vmodreq_getheaders(struct vmod_request *c, enum VMODREQ_TYP
 void vmodreq_sethead(struct vmod_request *c, enum VMODREQ_TYPE type,const char *key, const char *value,int size)
 {
 	if((!key || key[0] == NULL) && size ==0) return;
+	struct hdr *nh;
+
 	//
 	struct hdr *h;
 	struct vmod_headers *hs;
-	const char* nd;
+	
 	int ndsize = 0;
 	hs = vmodreq_getheaders(c,type);
+	nh = vmodreq_getrawheader(c,type,key);
 
-	h = calloc(1, sizeof(struct hdr));
-	AN(h);
-	h->key = strndup(key,strlen(key));
-	AN(h->key);
-	nd = vmodreq_getheader(c,type,key);
-	if(nd){
-		ndsize = vmodreq_getheadersize(c,type,key);
-		h->value = calloc(1,size+2+ndsize);
-		AN(h->value);
-		memcpy(h->value,nd,ndsize);
+	if(nh){
+		h = nh;
+	}else{
+		h = calloc(1, sizeof(struct hdr));
+		AN(h);
+		h->key = strndup(key,strlen(key));
+		AN(h->key);
+	}
+
+	if(nh){
+		//ここリークしてる->なおした
+		//vmodreq_getrawheader
+		ndsize = nh->size;
+		char *tmp= calloc(1,size + 2 + ndsize);
+		AN(tmp);
+		memcpy(tmp,nh->value,ndsize);
+		free(nh->value);
+		
+		h->value =tmp;
 		h->value[ndsize]=',';
+		h->array = 1;
 		++ndsize;
 		memcpy(h->value + ndsize,value,size);
-		
 	}else{
 		h->value = calloc(1,size+1);
 		AN(h->value);
@@ -228,33 +241,16 @@ void vmodreq_sethead(struct vmod_request *c, enum VMODREQ_TYPE type,const char *
 		h->bin = 1;
 	}
 	h->size = size + ndsize;
-	VTAILQ_INSERT_HEAD(&hs->headers, h, list);
+	if(!nh)
+		VTAILQ_INSERT_HEAD(&hs->headers, h, list);
 }
 
 ////////////////////////////////////////////////////
 //get header value
-int vmodreq_getheadersize(struct vmod_request *c, enum VMODREQ_TYPE type, const char *header)
+struct hdr *vmodreq_getrawheader(struct vmod_request *c, enum VMODREQ_TYPE type, const char *header)
 {
 	struct hdr *h;
-	int r = 0;
-
-	int i=0;
-	struct vmod_headers *hs;
-	hs = vmodreq_getheaders(c,type);
-	VTAILQ_FOREACH(h, &hs->headers, list) {
-		++i;
-//		syslog(6,"---%d %s %s",i,h->key,h->value);
-		if (strcasecmp(h->key, header) == 0) {
-			r = h->size;
-			break;
-		}
-	}
-	return r;
-}
-const char *vmodreq_getheader(struct vmod_request *c, enum VMODREQ_TYPE type, const char *header)
-{
-	struct hdr *h;
-	const char *r = NULL;
+	struct hdr *r = NULL;
 
 //	int i=0;
 	struct vmod_headers *hs;
@@ -264,14 +260,34 @@ const char *vmodreq_getheader(struct vmod_request *c, enum VMODREQ_TYPE type, co
 //		syslog(6,"---%d key=[%s] val=[%s] hk=[%s]",i,h->key,h->value,header);
 		if(!h->key && strcasecmp("", header) == 0){
 //			syslog(6,"ma:null");
-			r = h->value;
+			r = h;
 			break;
 		}else if (strcasecmp(h->key, header) == 0) {
-			r = h->value;
+			r = h;
 			break;
 		}
 	}
 //	syslog(6,"ret %s = %s",header,r);
+	return r;
+}
+int vmodreq_getheadersize(struct vmod_request *c, enum VMODREQ_TYPE type, const char *header)
+{
+	struct hdr *h;
+	int r = 0;
+	h = vmodreq_getrawheader(c,type,header);
+
+	if(h) r = h->size;
+	
+	return r;
+}
+const char *vmodreq_getheader(struct vmod_request *c, enum VMODREQ_TYPE type, const char *header)
+{
+	struct hdr *h;
+	char *r = NULL;
+	h = vmodreq_getrawheader(c,type,header);
+
+	if(h) r = h->value;
+	
 	return r;
 }
 
