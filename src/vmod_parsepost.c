@@ -84,13 +84,14 @@ void vmodreq_init_get(struct sess *sp,struct vmod_request *c){
 	if(!(sc_q = strchr(url,'?'))) return;
 	sc_q++;
 	int len = strlen(sc_q);
+	syslog(6,"[%s]",sc_q);
 	c->raw_get = calloc(1, len +1);
 
 	c->raw_get[len]=0;
 	memcpy(c->raw_get,sc_q,len);
 	//normalization
-	if(len>1 && c->raw_get[len-1] =='&')
-		c->raw_get[len-1] = 0;
+//	if(len>1 && c->raw_get[len-1] =='&')
+//		c->raw_get[len-1] = 0;
 }
 
 void vmodreq_init_cookie(struct sess *sp,struct vmod_request *c){

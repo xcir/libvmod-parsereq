@@ -16,7 +16,8 @@ varnish v1 -vcl+backend {
 		set resp.http.c        = parsepost.get_header("c");
 		set resp.http.d        = parsepost.get_header("d");
 		set resp.http.none     = parsepost.get_header("");
-		set resp.http.amulti  = parsepost.get_header("a[]");
+		set resp.http.amulti   = parsepost.get_header("a[]");
+		set resp.http.raw      = parsepost.get_body();
 	}
 } -start
 
@@ -26,6 +27,7 @@ client c1 {
 	expect resp.http.a  == "a,b"
 	expect resp.http.b  == "c"
 
+	expect resp.http.raw  == "a=a&a=b&b=c"
 }
 
 client c1 -run

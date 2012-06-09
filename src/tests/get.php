@@ -39,7 +39,8 @@ varnish v1 -vcl+backend {
 		set resp.http.c        = parsepost.get_header("c");
 		set resp.http.d        = parsepost.get_header("d");
 		set resp.http.none     = parsepost.get_header("");
-		set resp.http.amulti  = parsepost.get_header("a[]");
+		set resp.http.amulti   = parsepost.get_header("a[]");
+		set resp.http.raw      = parsepost.get_body();
 	}
 } -start
 
@@ -47,6 +48,7 @@ client c1 {
 	txreq -req GET -url "%query%"
 	rxresp
 %pat%
+	%query2%
 }
 
 client c1 -run
@@ -75,7 +77,14 @@ for($i = 1 ;$i<$cnt;$i++){
 		$ret .= "\texpect resp.http.{$key[$x]}  == {$val[$x]}\n";
 		
 	}
-	$tc[]=str_replace("%pat%",$ret,str_replace("%query%",$val[0],$base));
+	$q2 = explode('?',$val[0],2);
+	if(isset($q2[1])){
+		$q="expect resp.http.raw  == \"{$q2[1]}\"";
+	}else{
+		$q='';
+	}
+
+	$tc[]=str_replace('%query2%',$q,str_replace("%pat%",$ret,str_replace("%query%",$val[0],$base)));
 }
 $i=0;
 foreach($tc as $v){
