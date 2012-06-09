@@ -7,8 +7,8 @@ Varnish parse post data module
 -------------------------------
 
 :Author: Syohei Tanaka(@xcir)
-:Date: 2012-06-03
-:Version: 0.2
+:Date: 2012-06-10
+:Version: 0.3
 :Manual section: 3
 
 SYNOPSIS
@@ -23,53 +23,94 @@ DESCRIPTION
 FUNCTIONS
 ============
 
-parse
+init
 -------------
 
 Prototype
         ::
 
-                parse(STRING targethead, BOOL setParam, STRING paramPrefix, BOOL parseMulti ,BOOL parseFile)
+                init()
 Parameter
         ::
 
-                STRING targethead
-                  store raw data to specified header.
-                  if this param is null. is not set.
-                  
-                BOOL setParam
-                  true  = header is set to the data was parsed.
-                  false = is not set.
-                  
-                STRING paramPrefix
-                  prefix to use when header setting.
-                  
-                BOOL parseMulti
-                  true  = parse to the multipart/form-data
-                  false = no parse.
-                  
-                BOOL parseFile
-                  true  = parse to the file(multipart/form-data)
-                  false = no parse.
 	
 Return value
-	INT  success = 1 ,failed < 1
+	void
 Description
-	get POST request(Only "application/x-www-form-urlencoded" "multipart/form-data")
+	initialize.
+	
+	please write parsepost.init(); to 1st line in vcl_recv.
+
 Example
         ::
 
                 import parsepost;
-
-                if(parsepost.parse("x-raw",true,"p_",true,true) == 1){
-                  std.log("raw: " + req.http.x-raw);
-                  std.log("submitter: " + req.http.p_submitter);
+                
+                vcl_recv{
+                  parsepost.init();
                 }
 
-                //response
-                12 VCL_Log      c raw: submitter=abcdef&submitter2=b
-                12 VCL_Log      c submitter: abcdef
+XXX_header (XXX=post,get,cookie)
+-------------
 
+Prototype
+        ::
+
+                post_header(STRING key)
+                get_header(STRING key)
+                cookie_header(STRING key)
+Parameter
+        ::
+
+                STRING key
+                  data you want to get.
+
+	
+Return value
+	STRING
+Description
+	get value.
+
+Example
+        ::
+
+                //vcl
+                vcl_deliver{
+                  set resp.http.hoge = parsepost.post_header("hoge");
+                }
+                
+                //return
+                hoge: hogevalue
+
+XXX_body (XXX=post,get,cookie)
+-------------
+
+Prototype
+        ::
+
+                post_body()
+                get_body()
+                cookie_body()
+Parameter
+        ::
+
+
+	
+Return value
+	STRING
+Description
+	get (get,post,cookie) raw data.
+
+Example
+        ::
+
+                //vcl
+                vcl_deliver{
+                  set resp.http.hoge = parsepost.post_body();
+                }
+                
+                //return
+                hoge: hoge=hogevalue&mage=magevalue
 
 INSTALLATION
 ==================
@@ -111,6 +152,7 @@ Tested Version
 HISTORY
 ===========
 
+Version 0.3: support GET,COOKIE, modify interface.
 Version 0.2: rename module(postparse -> parsepost)
 Version 0.1: add function parse
 
