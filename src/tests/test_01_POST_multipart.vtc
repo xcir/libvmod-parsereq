@@ -1,4 +1,4 @@
-varnishtest "POST request(file,urlencode)"
+varnishtest "POST"
 
 server s1 {
        rxreq
@@ -9,29 +9,27 @@ varnish v1 -vcl+backend {
 	import parsepost from "${vmod_topbuild}/src/.libs/libvmod_parsepost.so";
 
 	sub vcl_recv {
-		set req.http.x-run = parsepost.parse("x-raw",true,"p_",true,true);
-		if(
-			req.http.p_a == "a" && 
-			req.http.p_b == "bb" &&
-			req.http.p_c == "ccc" &&
-			req.http.p_d == "ddd"
-		){
-			set req.http.x-test = "1";
-		}
+		parsepost.init();
 	}
 	sub vcl_deliver{
-		set resp.http.x-run  = req.http.x-run;
-		set resp.http.x-test = req.http.x-test;
-		set resp.http.x-raw  = req.http.x-raw;
+		set resp.http.a = parsepost.post_header("a");
+		set resp.http.b = parsepost.post_header("b");
+		set resp.http.c = parsepost.post_header("c");
+		set resp.http.d = parsepost.post_header("d");
+		if(parsepost.post_body()){
+			set resp.http.run = 1;
+		}
 	}
 } -start
 
 client c1 {
 	txreq -req POST -url "/" -hdr "Content-Type: multipart/form-data; boundary=-----abcdef" -body "-------abcdef\r\nContent-Disposition: form-data; name=\"a\"\r\n\r\na\r\n-------abcdef\r\nContent-Disposition: form-data; name=\"b\"\r\n\r\nbb\r\n-------abcdef\r\nContent-Disposition: form-data; name=\"c\"\r\n\r\nccc\r\n-------abcdef\r\nContent-Disposition: form-data; name=\"d\"; filename=\"file.txt\"\r\nContent-Type: text/plain\r\n\r\nddd\r\n-------abcdef--"
 	rxresp
-	expect resp.http.x-run  == "1"
-	expect resp.http.x-test == "1"
-	expect resp.http.x-raw  == "a=a&b=bb&c=ccc&d=ddd"
+	expect resp.http.a  == "a"
+	expect resp.http.b  == "bb"
+	expect resp.http.c  == "ccc"
+	expect resp.http.d  == "ddd"
+	expect resp.http.run  == "1"
 
 
 }

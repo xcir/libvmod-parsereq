@@ -1,26 +1,26 @@
-varnishtest "GET request"
+varnishtest "main"
 
 server s1 {
-	rxreq
-
-	txresp
+       rxreq
+       txresp
 } -start
 
 varnish v1 -vcl+backend {
 	import parsepost from "${vmod_topbuild}/src/.libs/libvmod_parsepost.so";
 
 	sub vcl_recv {
-		set req.http.x-run =  parsepost.parse("X-TEST",true,"PREFIX",true,true);
+		parsepost.init();
 	}
 	sub vcl_deliver{
-		set resp.http.x-run = req.http.x-run;
+		set resp.http.stat = parsepost.errcode();
 	}
 } -start
 
 client c1 {
-	txreq -url "/"
+	txreq -req POST -url "/"
 	rxresp
-	expect resp.http.x-run == "-4"
+	expect resp.http.stat  == "2"
+
 
 }
 

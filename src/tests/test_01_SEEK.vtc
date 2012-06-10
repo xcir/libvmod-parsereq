@@ -1,0 +1,103 @@
+varnishtest "seek"
+
+server s1 {
+       rxreq
+       txresp
+} -start
+
+varnish v1 -vcl+backend {
+	import parsepost from "${vmod_topbuild}/src/.libs/libvmod_parsepost.so";
+
+	sub vcl_recv {
+		parsepost.init();
+	}
+	sub vcl_deliver{
+		set resp.http.stat = parsepost.errcode();
+		set resp.http.po = "";
+		set resp.http.go = "";
+		set resp.http.co = "";
+
+		set resp.http.po2 = "";
+		set resp.http.go2 = "";
+		set resp.http.co2 = "";
+		C{
+			const char *vpo;
+			while(1){
+				vpo = Vmod_Func_parsepost.post_read_keylist(sp);
+				if(!vpo) break;
+				VRT_SetHdr(sp, HDR_RESP, "\003po:",VRT_GetHdr(sp, HDR_RESP, "\003po:"),"1",vrt_magic_string_end);
+			}
+			while(1){
+				vpo = Vmod_Func_parsepost.get_read_keylist(sp);
+				if(!vpo) break;
+				VRT_SetHdr(sp, HDR_RESP, "\003go:",VRT_GetHdr(sp, HDR_RESP, "\003go:"),"1",vrt_magic_string_end);
+			}
+			while(1){
+				vpo = Vmod_Func_parsepost.cookie_read_keylist(sp);
+				if(!vpo) break;
+				VRT_SetHdr(sp, HDR_RESP, "\003co:",VRT_GetHdr(sp, HDR_RESP, "\003co:"),"1",vrt_magic_string_end);
+			}
+			Vmod_Func_parsepost.post_seek_reset(sp);
+			Vmod_Func_parsepost.get_seek_reset(sp);
+			Vmod_Func_parsepost.cookie_seek_reset(sp);
+			unsigned fl;
+
+			fl = 0;
+			while(1){
+				vpo = Vmod_Func_parsepost.post_read_keylist(sp);
+				if(!vpo && !fl){
+					Vmod_Func_parsepost.post_seek_reset(sp);
+					fl = 1;
+					continue;
+				}else if(!vpo){
+					break;
+				}
+				VRT_SetHdr(sp, HDR_RESP, "\004po2:",VRT_GetHdr(sp, HDR_RESP, "\004po2:"),"1",vrt_magic_string_end);
+			}
+
+			fl = 0;
+			while(1){
+				vpo = Vmod_Func_parsepost.get_read_keylist(sp);
+				if(!vpo && !fl){
+					Vmod_Func_parsepost.get_seek_reset(sp);
+					fl = 1;
+					continue;
+				}else if(!vpo){
+					break;
+				}
+				VRT_SetHdr(sp, HDR_RESP, "\004go2:",VRT_GetHdr(sp, HDR_RESP, "\004go2:"),"1",vrt_magic_string_end);
+			}
+
+			fl = 0;
+			while(1){
+				vpo = Vmod_Func_parsepost.cookie_read_keylist(sp);
+				if(!vpo && !fl){
+					Vmod_Func_parsepost.cookie_seek_reset(sp);
+					fl = 1;
+					continue;
+				}else if(!vpo){
+					break;
+				}
+				VRT_SetHdr(sp, HDR_RESP, "\004co2:",VRT_GetHdr(sp, HDR_RESP, "\004co2:"),"1",vrt_magic_string_end);
+			}
+
+		}C
+	}
+} -start
+
+client c1 {
+	txreq -req POST -url "/?a=a&b=b&c=c" -hdr "Content-Type: multipart/form-data; boundary=-----abcdef\r\nCookie: a=b;b=c" -body "-------abcdef\r\nContent-Disposition: form-data; name=\"a\"\r\n\r\na\r\n-------abcdef\r\nContent-Disposition: form-data; name=\"b\"\r\n\r\nbb\r\n-------abcdef\r\nContent-Disposition: form-data; name=\"c\"\r\n\r\nccc\r\n-------abcdef\r\nContent-Disposition: form-data; name=\"d\"; filename=\"file.txt\"\r\nContent-Type: text/plain\r\n\r\nddd\r\n-------abcdef--"
+	rxresp
+	expect resp.http.po   == "1111"
+	expect resp.http.go   == "111"
+	expect resp.http.co   == "11"
+	expect resp.http.po2  == "11111111"
+	expect resp.http.go2  == "111111"
+	expect resp.http.co2  == "1111"
+	expect resp.http.stat == "1"
+
+
+}
+
+
+client c1 -run
