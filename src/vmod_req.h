@@ -100,7 +100,6 @@ struct vmod_request *vmodreq_get_raw(struct sess *);
 static void vmodreq_free(struct vmod_request *);
 
 int decodeForm_multipart(struct sess *,char *);
-int decodeForm_urlencoded(struct sess *,char *,enum VMODREQ_TYPE ,int);
 int vmodreq_get_parse(struct sess *);
 int vmodreq_cookie_parse(struct sess *);
 int vmodreq_reqbody(struct sess *, char**,int*);

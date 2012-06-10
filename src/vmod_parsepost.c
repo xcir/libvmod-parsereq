@@ -202,7 +202,7 @@ struct vmod_headers *vmodreq_getheaders(struct vmod_request *c, enum VMODREQ_TYP
 void vmodreq_sethead(struct vmod_request *c, enum VMODREQ_TYPE type,const char *key, const char *value,int size)
 {
 	if((!key || key[0] == 0) && size ==0) return;
-	struct hdr *nh;
+	struct hdr *exhead;
 
 	//
 	struct hdr *h;
@@ -210,18 +210,10 @@ void vmodreq_sethead(struct vmod_request *c, enum VMODREQ_TYPE type,const char *
 	
 	int ndsize = 0;
 	hs = vmodreq_getheaders(c,type);
-	nh = vmodreq_getrawheader(c,type,key);
+	exhead = vmodreq_getrawheader(c,type,key);
 
-	if(nh){
-		h = nh;
-	}else{
-		h = calloc(1, sizeof(struct hdr));
-		AN(h);
-		h->key = strndup(key,strlen(key));
-		AN(h->key);
-	}
-
-	if(nh){
+	if(exhead){
+		h = exhead;
 		//array key
 		ndsize = h->size;
 		char *tmp= calloc(1,size + 2 + ndsize);
@@ -229,17 +221,24 @@ void vmodreq_sethead(struct vmod_request *c, enum VMODREQ_TYPE type,const char *
 		memcpy(tmp,h->value,ndsize);
 		free(h->value);
 		
+		/////////////
 		h->value =tmp;
 		h->value[ndsize]=',';
 		h->array = 1;
 		++ndsize;
 		memcpy(h->value + ndsize,value,size);
 	}else{
+		h = calloc(1, sizeof(struct hdr));
+		AN(h);
+		h->key = strndup(key,strlen(key));
+		AN(h->key);
 		h->value = calloc(1,size+1);
+		
+		/////////////
 		AN(h->value);
 		memcpy(h->value,value,size);
+
 	}
-	
 	//h->value = strndup(value,strlen(value));
 	if(strlen(value)==size+ndsize){
 		h->bin = 0;
@@ -247,7 +246,7 @@ void vmodreq_sethead(struct vmod_request *c, enum VMODREQ_TYPE type,const char *
 		h->bin = 1;
 	}
 	h->size = size + ndsize;
-	if(!nh)
+	if(!exhead)
 		VTAILQ_INSERT_HEAD(&hs->headers, h, list);
 }
 
@@ -653,7 +652,7 @@ int vmodreq_decode_urlencode(struct sess *sp,char *body,enum VMODREQ_TYPE type,c
 //		sc_amp[0] = tmp2;//tbody
 		tmpbody   = sc_amp + 1;
 		while(1){
-			//クッキー向け（Keyの先頭にスペースが入ることがあるんで
+			//for COOKIE (Sometimes it contains spaces at key prefix.)
 //			syslog(6,"[%s]",tmpbody);
 			if(tmpbody[0]==0) break;
 			if(tmpbody[0] ==' '){
@@ -669,20 +668,19 @@ int vmodreq_decode_urlencode(struct sess *sp,char *body,enum VMODREQ_TYPE type,c
 
 }
 
-int decodeForm_urlencoded(struct sess *sp,char *body,enum VMODREQ_TYPE type,int size){
-	return vmodreq_decode_urlencode(sp,body,type,'=','&',size);
-}
+
 int vmodreq_cookie_parse(struct sess *sp){
 	struct vmod_request *c = vmodreq_get(sp);
 	if(!c->raw_cookie) return 1;
 
 	return vmodreq_decode_urlencode(sp,c->raw_cookie,COOKIE,'=',';',c->size_cookie);
 }
+
 int vmodreq_get_parse(struct sess *sp){
 	int ret=1;
 	struct vmod_request *c = vmodreq_get(sp);
 	if(c->raw_get)
-		ret = decodeForm_urlencoded(sp, c->raw_get,GET,c->size_get);
+		ret = vmodreq_decode_urlencode(sp,c->raw_get,GET,'=','&',c->size_get);
 	return ret;
 }
 
@@ -725,8 +723,8 @@ int vmodreq_reqbody(struct sess *sp, char**body,int *orig_content_length){
 		*body = (char*)sp->wrk->ws->f;
 		memcpy(*body, sp->htc->rxbuf.b, rxbuf_size);
 		sp->htc->rxbuf.b = *body;
-		*body += rxbuf_size;
-		*body[0]= 0;
+		*body            += rxbuf_size;
+		*body[0]         = 0;
 		sp->htc->rxbuf.e = *body;
 		WS_Release(sp->wrk->ws,content_length + rxbuf_size + 1);
 		///////////////////////////////////////////////
@@ -757,6 +755,7 @@ int vmodreq_reqbody(struct sess *sp, char**body,int *orig_content_length){
 	}
 	return 1;
 }
+
 
 int vmodreq_post_parse(struct sess *sp){
 
@@ -792,14 +791,15 @@ int vmodreq_post_parse(struct sess *sp){
 	}
 	//thinking....
 	if(exec == UNKNOWN) return 2;
+	
+	//get request body
 	ret = vmodreq_reqbody(sp,&body,&content_length);
 	if(ret<1) return ret;
 
 	//decode form
-//	ret = 1;
 	switch(exec){
 		case URL:
-			ret = decodeForm_urlencoded(sp, body,POST,content_length);
+			ret = vmodreq_decode_urlencode(sp,body,POST,'=','&',content_length);
 			break;
 		case MULTI:
 			ret = decodeForm_multipart(sp, body);
