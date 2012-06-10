@@ -6,13 +6,13 @@ server s1 {
 } -start
 
 varnish v1 -vcl+backend {
-	import parsepost from "${vmod_topbuild}/src/.libs/libvmod_parsepost.so";
+	import parsereq from "${vmod_topbuild}/src/.libs/libvmod_parsereq.so";
 
 	sub vcl_recv {
-		parsepost.init();
+		parsereq.init();
 	}
 	sub vcl_deliver{
-		set resp.http.stat = parsepost.errcode();
+		set resp.http.stat = parsereq.errcode();
 		set resp.http.po = "";
 		set resp.http.go = "";
 		set resp.http.co = "";
@@ -23,30 +23,30 @@ varnish v1 -vcl+backend {
 		C{
 			const char *vpo;
 			while(1){
-				vpo = Vmod_Func_parsepost.post_read_keylist(sp);
+				vpo = Vmod_Func_parsereq.post_read_keylist(sp);
 				if(!vpo) break;
 				VRT_SetHdr(sp, HDR_RESP, "\003po:",VRT_GetHdr(sp, HDR_RESP, "\003po:"),"1",vrt_magic_string_end);
 			}
 			while(1){
-				vpo = Vmod_Func_parsepost.get_read_keylist(sp);
+				vpo = Vmod_Func_parsereq.get_read_keylist(sp);
 				if(!vpo) break;
 				VRT_SetHdr(sp, HDR_RESP, "\003go:",VRT_GetHdr(sp, HDR_RESP, "\003go:"),"1",vrt_magic_string_end);
 			}
 			while(1){
-				vpo = Vmod_Func_parsepost.cookie_read_keylist(sp);
+				vpo = Vmod_Func_parsereq.cookie_read_keylist(sp);
 				if(!vpo) break;
 				VRT_SetHdr(sp, HDR_RESP, "\003co:",VRT_GetHdr(sp, HDR_RESP, "\003co:"),"1",vrt_magic_string_end);
 			}
-			Vmod_Func_parsepost.post_seek_reset(sp);
-			Vmod_Func_parsepost.get_seek_reset(sp);
-			Vmod_Func_parsepost.cookie_seek_reset(sp);
+			Vmod_Func_parsereq.post_seek_reset(sp);
+			Vmod_Func_parsereq.get_seek_reset(sp);
+			Vmod_Func_parsereq.cookie_seek_reset(sp);
 			unsigned fl;
 
 			fl = 0;
 			while(1){
-				vpo = Vmod_Func_parsepost.post_read_keylist(sp);
+				vpo = Vmod_Func_parsereq.post_read_keylist(sp);
 				if(!vpo && !fl){
-					Vmod_Func_parsepost.post_seek_reset(sp);
+					Vmod_Func_parsereq.post_seek_reset(sp);
 					fl = 1;
 					continue;
 				}else if(!vpo){
@@ -57,9 +57,9 @@ varnish v1 -vcl+backend {
 
 			fl = 0;
 			while(1){
-				vpo = Vmod_Func_parsepost.get_read_keylist(sp);
+				vpo = Vmod_Func_parsereq.get_read_keylist(sp);
 				if(!vpo && !fl){
-					Vmod_Func_parsepost.get_seek_reset(sp);
+					Vmod_Func_parsereq.get_seek_reset(sp);
 					fl = 1;
 					continue;
 				}else if(!vpo){
@@ -70,9 +70,9 @@ varnish v1 -vcl+backend {
 
 			fl = 0;
 			while(1){
-				vpo = Vmod_Func_parsepost.cookie_read_keylist(sp);
+				vpo = Vmod_Func_parsereq.cookie_read_keylist(sp);
 				if(!vpo && !fl){
-					Vmod_Func_parsepost.cookie_seek_reset(sp);
+					Vmod_Func_parsereq.cookie_seek_reset(sp);
 					fl = 1;
 					continue;
 				}else if(!vpo){

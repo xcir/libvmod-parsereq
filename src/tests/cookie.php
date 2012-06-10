@@ -23,19 +23,19 @@ server s1 {
 } -start
 
 varnish v1 -vcl+backend {
-	import parsepost from "\${vmod_topbuild}/src/.libs/libvmod_parsepost.so";
+	import parsereq from "\${vmod_topbuild}/src/.libs/libvmod_parsereq.so";
 
 	sub vcl_recv {
-		parsepost.init();
+		parsereq.init();
 	}
 	sub vcl_deliver{
-		set resp.http.a        = parsepost.cookie_header("a");
-		set resp.http.b        = parsepost.cookie_header("b");
-		set resp.http.c        = parsepost.cookie_header("c");
-		set resp.http.d        = parsepost.cookie_header("d");
-		set resp.http.none     = parsepost.cookie_header("");
-		set resp.http.amulti   = parsepost.cookie_header("a[]");
-		set resp.http.raw      = parsepost.cookie_body();
+		set resp.http.a        = parsereq.cookie_header("a");
+		set resp.http.b        = parsereq.cookie_header("b");
+		set resp.http.c        = parsereq.cookie_header("c");
+		set resp.http.d        = parsereq.cookie_header("d");
+		set resp.http.none     = parsereq.cookie_header("");
+		set resp.http.amulti   = parsereq.cookie_header("a[]");
+		set resp.http.raw      = parsereq.cookie_body();
 	}
 } -start
 

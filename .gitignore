@@ -6,7 +6,7 @@ Makefile.in
 *.lo
 *.la
 *~
-vmod_parsepost.3
+vmod_parsereq.3
 
 /aclocal.m4
 /autom4te.cache/

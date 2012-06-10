@@ -1,5 +1,5 @@
 ===================
-vmod_parsepost
+vmod_parsereq
 ===================
 
 -------------------------------
@@ -14,7 +14,7 @@ Varnish parse post data module
 SYNOPSIS
 ===========
 
-import parsepost;
+import parsereq;
 
 DESCRIPTION
 ==============
@@ -42,15 +42,15 @@ Return value
 Description
 	initialize.
 	
-	please write parsepost.init(); to 1st line in vcl_recv.
+	please write parsereq.init(); to 1st line in vcl_recv.
 
 Example
         ::
 
-                import parsepost;
+                import parsereq;
                 
                 vcl_recv{
-                  parsepost.init();
+                  parsereq.init();
                 }
 
 errcode
@@ -81,10 +81,10 @@ Description
 Example
         ::
 
-                import parsepost;
+                import parsereq;
                 
                 vcl_recv{
-                  if(parsepost.init()<1){
+                  if(parsereq.init()<1){
                   
                     ...
                   
@@ -117,7 +117,7 @@ Example
 
                 //vcl
                 vcl_deliver{
-                  set resp.http.hoge = parsepost.post_header("hoge");
+                  set resp.http.hoge = parsereq.post_header("hoge");
                 }
                 
                 //return
@@ -150,7 +150,7 @@ Example
 
                 //vcl
                 vcl_deliver{
-                  set resp.http.hoge = parsepost.post_body();
+                  set resp.http.hoge = parsereq.post_body();
                 }
                 
                 //return
@@ -183,10 +183,10 @@ Example
                 
                 //vcl
                 vcl_deliver{
-                  set resp.http.n1 = parsepost.get_read_keylist();
-                  set resp.http.n2 = parsepost.get_read_keylist();
+                  set resp.http.n1 = parsereq.get_read_keylist();
+                  set resp.http.n2 = parsereq.get_read_keylist();
                   //nothing
-                  set resp.http.n3 = parsepost.get_read_keylist();
+                  set resp.http.n3 = parsereq.get_read_keylist();
                 }
                 
                 //return
@@ -219,13 +219,13 @@ Example
                 
                 //vcl
                 vcl_deliver{
-                  set resp.http.n1 = parsepost.get_read_keylist();
-                  set resp.http.n2 = parsepost.get_read_keylist();
-                  parsepost.get_seek_reset();
-                  set resp.http.n3 = parsepost.get_read_keylist();
-                  set resp.http.n4 = parsepost.get_read_keylist();
+                  set resp.http.n1 = parsereq.get_read_keylist();
+                  set resp.http.n2 = parsereq.get_read_keylist();
+                  parsereq.get_seek_reset();
+                  set resp.http.n3 = parsereq.get_read_keylist();
+                  set resp.http.n4 = parsereq.get_read_keylist();
                   //nothing
-                  set resp.http.n5 = parsepost.get_read_keylist();
+                  set resp.http.n5 = parsereq.get_read_keylist();
                 }
                 
                 //return
@@ -274,6 +274,8 @@ Tested Version
 
 HISTORY
 ===========
+
+Version 0.5: rename module(parsepost -> parsereq)
 
 Version 0.4: add get keylist function.
 

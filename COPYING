@@ -1,4 +1,4 @@
-libvmod-parsepost, easy rewrite for Varnish:
+libvmod-parsereq, easy rewrite for Varnish:
 Copyright (c) 2012 Syohei Tanaka(@xcir)
 
 File layout and configuration based on libvmod-example:

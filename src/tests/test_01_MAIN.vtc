@@ -6,13 +6,13 @@ server s1 {
 } -start
 
 varnish v1 -vcl+backend {
-	import parsepost from "${vmod_topbuild}/src/.libs/libvmod_parsepost.so";
+	import parsereq from "${vmod_topbuild}/src/.libs/libvmod_parsereq.so";
 
 	sub vcl_recv {
-		parsepost.init();
+		parsereq.init();
 	}
 	sub vcl_deliver{
-		set resp.http.stat = parsepost.errcode();
+		set resp.http.stat = parsereq.errcode();
 	}
 } -start
 

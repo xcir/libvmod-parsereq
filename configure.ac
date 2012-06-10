@@ -1,8 +1,8 @@
 AC_PREREQ(2.59)
 AC_COPYRIGHT([Copyright (c) 2012 Syohei Tanaka(@xcir)])
-AC_INIT([libvmod-parsepost], [trunk])
+AC_INIT([libvmod-parsereq], [trunk])
 AC_CONFIG_MACRO_DIR([m4])
-AC_CONFIG_SRCDIR(src/vmod_parsepost.vcc)
+AC_CONFIG_SRCDIR(src/vmod_parsereq.vcc)
 AM_CONFIG_HEADER(config.h)
 
 AC_CANONICAL_SYSTEM

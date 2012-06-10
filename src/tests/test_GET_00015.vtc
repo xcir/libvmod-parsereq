@@ -6,20 +6,20 @@ server s1 {
 } -start
 
 varnish v1 -vcl+backend {
-	import parsepost from "${vmod_topbuild}/src/.libs/libvmod_parsepost.so";
+	import parsereq from "${vmod_topbuild}/src/.libs/libvmod_parsereq.so";
 
 	sub vcl_recv {
-		parsepost.init();
+		parsereq.init();
 
 	}
 	sub vcl_deliver{
-		set resp.http.a        = parsepost.get_header("a");
-		set resp.http.b        = parsepost.get_header("b");
-		set resp.http.c        = parsepost.get_header("c");
-		set resp.http.d        = parsepost.get_header("d");
-		set resp.http.none     = parsepost.get_header("");
-		set resp.http.amulti   = parsepost.get_header("a[]");
-		set resp.http.raw      = parsepost.get_body();
+		set resp.http.a        = parsereq.get_header("a");
+		set resp.http.b        = parsereq.get_header("b");
+		set resp.http.c        = parsereq.get_header("c");
+		set resp.http.d        = parsereq.get_header("d");
+		set resp.http.none     = parsereq.get_header("");
+		set resp.http.amulti   = parsereq.get_header("a[]");
+		set resp.http.raw      = parsereq.get_body();
 	}
 } -start
 

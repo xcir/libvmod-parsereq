@@ -10,7 +10,7 @@
 #include "vmod_abi.h"
 
 
-#define POST_REQ_HDR "\025X-VMOD-PARSEPOST-PTR:"
+#define POST_REQ_HDR "\024X-VMOD-PARSEREQ-PTR:"
 
 
 

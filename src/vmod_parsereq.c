@@ -1,4 +1,4 @@
-#include "vmod_req.h"
+#include "vmod_parsereq.h"
 
 /*
 	todo:
@@ -276,7 +276,7 @@ const char* vmod_cookie_read_keylist(struct sess *sp){
 void vmodreq_seek_reset(struct sess *sp, enum VMODREQ_TYPE type)
 {
 	if(!vmodreq_get_raw(sp)){
-		VRT_panic(sp,"please write \"parsepost.init();\" to 1st line in vcl_recv.",vrt_magic_string_end);
+		VRT_panic(sp,"please write \"parsereq.init();\" to 1st line in vcl_recv.",vrt_magic_string_end);
 	}
 	struct vmod_request *c = vmodreq_get(sp);
 	struct vmod_headers *hs= vmodreq_getheaders(c,type);
@@ -286,7 +286,7 @@ void vmodreq_seek_reset(struct sess *sp, enum VMODREQ_TYPE type)
 const char *vmodreq_seek(struct sess *sp, enum VMODREQ_TYPE type)
 {
 	if(!vmodreq_get_raw(sp)){
-		VRT_panic(sp,"please write \"parsepost.init();\" to 1st line in vcl_recv.",vrt_magic_string_end);
+		VRT_panic(sp,"please write \"parsereq.init();\" to 1st line in vcl_recv.",vrt_magic_string_end);
 	}
 	struct vmod_request *c = vmodreq_get(sp);
 	struct hdr *h;
@@ -366,7 +366,7 @@ const char *vmodreq_getheader(struct vmod_request *c, enum VMODREQ_TYPE type, co
 const char *vmodreq_header(struct sess *sp, enum VMODREQ_TYPE type, const char *header)
 {
 	if(!vmodreq_get_raw(sp)){
-		VRT_panic(sp,"please write \"parsepost.init();\" to 1st line in vcl_recv.",vrt_magic_string_end);
+		VRT_panic(sp,"please write \"parsereq.init();\" to 1st line in vcl_recv.",vrt_magic_string_end);
 	}
 	struct vmod_request *c = vmodreq_get(sp);
 	return vmodreq_getheader(c,type,header);
@@ -559,21 +559,21 @@ int decodeForm_multipart(struct sess *sp,char *body){
 }
 const char* vmod_post_body(struct sess *sp){
 	if(!vmodreq_get_raw(sp)){
-		VRT_panic(sp,"please write \"parsepost.init();\" to 1st line in vcl_recv.",vrt_magic_string_end);
+		VRT_panic(sp,"please write \"parsereq.init();\" to 1st line in vcl_recv.",vrt_magic_string_end);
 	}
 	struct vmod_request *c = vmodreq_get(sp);
 	return c->raw_post;
 }
 const char* vmod_get_body(struct sess *sp){
 	if(!vmodreq_get_raw(sp)){
-		VRT_panic(sp,"please write \"parsepost.init();\" to 1st line in vcl_recv.",vrt_magic_string_end);
+		VRT_panic(sp,"please write \"parsereq.init();\" to 1st line in vcl_recv.",vrt_magic_string_end);
 	}
 	struct vmod_request *c = vmodreq_get(sp);
 	return c->raw_get;
 }
 const char* vmod_cookie_body(struct sess *sp){
 	if(!vmodreq_get_raw(sp)){
-		VRT_panic(sp,"please write \"parsepost.init();\" to 1st line in vcl_recv.",vrt_magic_string_end);
+		VRT_panic(sp,"please write \"parsereq.init();\" to 1st line in vcl_recv.",vrt_magic_string_end);
 	}
 	struct vmod_request *c = vmodreq_get(sp);
 //	syslog(6,"ckck [%s] %d",c->raw_cookie,strlen(c->raw_cookie));
@@ -816,7 +816,7 @@ void vmod_init(struct sess *sp){
 }
 int vmod_errcode(struct sess *sp){
 	if(!vmodreq_get_raw(sp)){
-		VRT_panic(sp,"please write \"parsepost.init();\" to 1st line in vcl_recv.",vrt_magic_string_end);
+		VRT_panic(sp,"please write \"parsereq.init();\" to 1st line in vcl_recv.",vrt_magic_string_end);
 	}
 	return vmodreq_get(sp)->parse_ret;
 }
