@@ -560,14 +560,23 @@ int decodeForm_multipart(struct sess *sp,char *body){
 	return 1;
 }
 const char* vmod_post_body(struct sess *sp){
+	if(!vmodreq_get_raw(sp)){
+		VRT_panic(sp,"please write \"parsepost.init();\" to 1st line in vcl_recv.",vrt_magic_string_end);
+	}
 	struct vmod_request *c = vmodreq_get(sp);
 	return c->raw_post;
 }
 const char* vmod_get_body(struct sess *sp){
+	if(!vmodreq_get_raw(sp)){
+		VRT_panic(sp,"please write \"parsepost.init();\" to 1st line in vcl_recv.",vrt_magic_string_end);
+	}
 	struct vmod_request *c = vmodreq_get(sp);
 	return c->raw_get;
 }
 const char* vmod_cookie_body(struct sess *sp){
+	if(!vmodreq_get_raw(sp)){
+		VRT_panic(sp,"please write \"parsepost.init();\" to 1st line in vcl_recv.",vrt_magic_string_end);
+	}
 	struct vmod_request *c = vmodreq_get(sp);
 //	syslog(6,"ckck [%s] %d",c->raw_cookie,strlen(c->raw_cookie));
 

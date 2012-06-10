@@ -1,0 +1,28 @@
+varnishtest "main"
+
+server s1 {
+       rxreq
+       txresp
+} -start
+
+varnish v1 -vcl+backend {
+	import parsepost from "${vmod_topbuild}/src/.libs/libvmod_parsepost.so";
+
+	sub vcl_recv {
+		parsepost.init();
+	}
+	sub vcl_deliver{
+		set resp.http.stat = parsepost.errcode();
+	}
+} -start
+
+client c1 {
+	txreq -req POST -url "/"
+	rxresp
+	expect resp.http.stat  == "2"
+
+
+}
+
+
+client c1 -run
