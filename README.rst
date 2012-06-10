@@ -34,7 +34,10 @@ Prototype
 Parameter
 
 Return value
-	void
+        ::
+
+                void
+                
 
 Description
 	initialize.
@@ -48,6 +51,44 @@ Example
                 
                 vcl_recv{
                   parsepost.init();
+                }
+
+errcode
+-------------
+
+Prototype
+        ::
+
+                errcode()
+
+Parameter
+
+Return value
+        ::
+
+                int errorcode
+                
+                (sucess) 2   unknown or none content-type.
+                (sucess) 1   parse complete.
+                (error)  -1  less sess_workspace.(you try to increase the sess_workspace)
+                (error)  -2  none content-length key.
+                (error)  -3  readable data < content-length.
+                
+
+Description
+	get status code.
+
+Example
+        ::
+
+                import parsepost;
+                
+                vcl_recv{
+                  if(parsepost.init()<1){
+                  
+                    ...
+                  
+                  }
                 }
 
 XXX_header (XXX=post,get,cookie)
@@ -67,7 +108,7 @@ Parameter
 
 	
 Return value
-	STRING
+	STRING (NOT ESCAPED)
 Description
 	get value.
 
@@ -95,7 +136,7 @@ Prototype
 Parameter
 
 Return value
-	STRING
+	STRING (NOT ESCAPED)
 
 Description
 	get (get,post,cookie) raw data.

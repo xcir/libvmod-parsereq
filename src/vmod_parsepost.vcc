@@ -19,4 +19,5 @@ Function VOID get_seek_reset()
 Function VOID cookie_seek_reset()
 
 Function VOID   init()
+Function INT    errcode()
 

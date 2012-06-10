@@ -12,6 +12,7 @@ varnish v1 -vcl+backend {
 		parsepost.init();
 	}
 	sub vcl_deliver{
+		set resp.http.stat = parsepost.errcode();
 		set resp.http.po = "";
 		set resp.http.go = "";
 		set resp.http.co = "";
@@ -93,6 +94,7 @@ client c1 {
 	expect resp.http.po2  == "11111111"
 	expect resp.http.go2  == "111111"
 	expect resp.http.co2  == "1111"
+	expect resp.http.stat == "1"
 
 
 }

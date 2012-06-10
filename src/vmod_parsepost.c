@@ -133,6 +133,7 @@ struct vmod_request *vmodreq_init(struct sess *sp){
 
 	//parse post data
 	r =vmodreq_post_parse(sp);
+	c->parse_ret = r;
 	
 	//init rawdata
 	vmodreq_init_post(sp,c);
@@ -276,6 +277,9 @@ const char* vmod_cookie_read_keylist(struct sess *sp){
 
 void vmodreq_seek_reset(struct sess *sp, enum VMODREQ_TYPE type)
 {
+	if(!vmodreq_get_raw(sp)){
+		VRT_panic(sp,"please write \"parsepost.init();\" to 1st line in vcl_recv.",vrt_magic_string_end);
+	}
 	struct vmod_request *c = vmodreq_get(sp);
 	struct vmod_headers *hs= vmodreq_getheaders(c,type);
 	hs->seek = NULL;
@@ -283,6 +287,9 @@ void vmodreq_seek_reset(struct sess *sp, enum VMODREQ_TYPE type)
 
 const char *vmodreq_seek(struct sess *sp, enum VMODREQ_TYPE type)
 {
+	if(!vmodreq_get_raw(sp)){
+		VRT_panic(sp,"please write \"parsepost.init();\" to 1st line in vcl_recv.",vrt_magic_string_end);
+	}
 	struct vmod_request *c = vmodreq_get(sp);
 	struct hdr *h;
 	struct hdr *r = NULL;
@@ -738,11 +745,11 @@ int vmodreq_reqbody(struct sess *sp, char**body,int *orig_content_length){
 int vmodreq_post_parse(struct sess *sp){
 
 /*
+	2	=sucess		unknown or none content-type
 	1	=sucess
 	-1	=error		less sess_workspace
 	-2	=error		none content-length key
 	-3	=error		less content-length
-	-4	=error		unknown or none content-type
 */	
 	char 				*h_ctype_ptr, *body;
 	int					ret,content_length;
@@ -768,7 +775,7 @@ int vmodreq_post_parse(struct sess *sp){
 		exec = UNKNOWN;
 	}
 	//thinking....
-	if(exec == UNKNOWN) return -4;
+	if(exec == UNKNOWN) return 2;
 	ret = vmodreq_reqbody(sp,&body,&content_length);
 	if(ret<1) return ret;
 
@@ -789,5 +796,11 @@ int vmodreq_post_parse(struct sess *sp){
 
 }
 void vmod_init(struct sess *sp){
-	vmodreq_get(sp);
+	return vmodreq_get(sp)->parse_ret;
+}
+int vmod_errcode(struct sess *sp){
+	if(!vmodreq_get_raw(sp)){
+		VRT_panic(sp,"please write \"parsepost.init();\" to 1st line in vcl_recv.",vrt_magic_string_end);
+	}
+	return vmodreq_get(sp)->parse_ret;
 }

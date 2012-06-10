@@ -63,6 +63,8 @@ struct vmod_request {
 	struct vmod_headers* get;
 	struct vmod_headers* cookie;
 	
+	int  parse_ret;
+	
 	char *raw_post;
 	int  size_post;
 
