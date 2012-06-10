@@ -1,6 +1,23 @@
 Module parsepost
 Init init_function
 
-#parse(header, setparam  , prefix , parsemulti , parsefile)
-Function INT parse(STRING,BOOL,STRING,BOOL,BOOL)
+
+Function STRING post_header(STRING)
+Function STRING get_header(STRING)
+Function STRING cookie_header(STRING)
+
+Function STRING post_body()
+Function STRING get_body()
+Function STRING cookie_body()
+
+Function STRING post_read_keylist()
+Function STRING get_read_keylist()
+Function STRING cookie_read_keylist()
+
+Function VOID post_seek_reset()
+Function VOID get_seek_reset()
+Function VOID cookie_seek_reset()
+
+Function VOID   init()
+Function INT    errcode()
 

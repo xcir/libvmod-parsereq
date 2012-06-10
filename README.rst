@@ -7,8 +7,8 @@ Varnish parse post data module
 -------------------------------
 
 :Author: Syohei Tanaka(@xcir)
-:Date: 2012-06-03
-:Version: 0.2
+:Date: 2012-06-10
+:Version: 0.4
 :Manual section: 3
 
 SYNOPSIS
@@ -23,52 +23,216 @@ DESCRIPTION
 FUNCTIONS
 ============
 
-parse
+init
 -------------
 
 Prototype
         ::
 
-                parse(STRING targethead, BOOL setParam, STRING paramPrefix, BOOL parseMulti ,BOOL parseFile)
+                init()
+
 Parameter
+
+Return value
         ::
 
-                STRING targethead
-                  store raw data to specified header.
-                  if this param is null. is not set.
-                  
-                BOOL setParam
-                  true  = header is set to the data was parsed.
-                  false = is not set.
-                  
-                STRING paramPrefix
-                  prefix to use when header setting.
-                  
-                BOOL parseMulti
-                  true  = parse to the multipart/form-data
-                  false = no parse.
-                  
-                BOOL parseFile
-                  true  = parse to the file(multipart/form-data)
-                  false = no parse.
-	
-Return value
-	INT  success = 1 ,failed < 1
+                void
+                
+
 Description
-	get POST request(Only "application/x-www-form-urlencoded" "multipart/form-data")
+	initialize.
+	
+	please write parsepost.init(); to 1st line in vcl_recv.
+
 Example
         ::
 
                 import parsepost;
-
-                if(parsepost.parse("x-raw",true,"p_",true,true) == 1){
-                  std.log("raw: " + req.http.x-raw);
-                  std.log("submitter: " + req.http.p_submitter);
+                
+                vcl_recv{
+                  parsepost.init();
                 }
 
-                //response
-                12 VCL_Log      c raw: submitter=abcdef&submitter2=b
-                12 VCL_Log      c submitter: abcdef
+errcode
+-------------
+
+Prototype
+        ::
+
+                errcode()
+
+Parameter
+
+Return value
+        ::
+
+                int errorcode
+                
+                (sucess) 2   unknown or none content-type.
+                (sucess) 1   parse complete.
+                (error)  -1  less sess_workspace.(you try to increase the sess_workspace)
+                (error)  -2  none content-length key.
+                (error)  -3  readable data < content-length.
+                
+
+Description
+	get status code.
+
+Example
+        ::
+
+                import parsepost;
+                
+                vcl_recv{
+                  if(parsepost.init()<1){
+                  
+                    ...
+                  
+                  }
+                }
+
+XXX_header (XXX=post,get,cookie)
+-----------------------------------
+
+Prototype
+        ::
+
+                post_header(STRING key)
+                get_header(STRING key)
+                cookie_header(STRING key)
+Parameter
+        ::
+
+                STRING key
+                  data you want to get.
+
+	
+Return value
+	STRING (NOT ESCAPED)
+Description
+	get value.
+
+Example
+        ::
+
+                //vcl
+                vcl_deliver{
+                  set resp.http.hoge = parsepost.post_header("hoge");
+                }
+                
+                //return
+                hoge: hogevalue
+
+XXX_body (XXX=post,get,cookie)
+-----------------------------------
+
+Prototype
+        ::
+
+                post_body()
+                get_body()
+                cookie_body()
+
+Parameter
+
+Return value
+	STRING (NOT ESCAPED)
+
+Description
+	get (get,post,cookie) raw data.
+	
+	this function is dangerous.
+	raw data is not escape.
+	if you want to use ,require a thorough understanding of risk.
+
+Example
+        ::
+
+                //vcl
+                vcl_deliver{
+                  set resp.http.hoge = parsepost.post_body();
+                }
+                
+                //return
+                hoge: hoge=hogevalue&mage=magevalue
+
+
+XXX_read_keylist (XXX=post,get,cookie)
+----------------------------------------
+
+Prototype
+        ::
+
+                post_read_keylist()
+                get_read_keylist()
+                cookie_read_keylist()
+
+Parameter
+
+Return value
+	STRING
+
+Description
+	get (get,post,cookie) key name.
+
+Example
+        ::
+
+                //req
+                /?name1=a&name2=b
+                
+                //vcl
+                vcl_deliver{
+                  set resp.http.n1 = parsepost.get_read_keylist();
+                  set resp.http.n2 = parsepost.get_read_keylist();
+                  //nothing
+                  set resp.http.n3 = parsepost.get_read_keylist();
+                }
+                
+                //return
+                n1: name2
+                n2: name1
+
+XXX_seek_reset (XXX=post,get,cookie)
+----------------------------------------
+
+Prototype
+        ::
+
+                post_seek_reset()
+                get_seek_reset()
+                cookie_seek_reset()
+
+Parameter
+
+Return value
+	VOID
+
+Description
+	to reset the seek index.
+
+Example
+        ::
+
+                //req
+                /?name1=a&name2=b
+                
+                //vcl
+                vcl_deliver{
+                  set resp.http.n1 = parsepost.get_read_keylist();
+                  set resp.http.n2 = parsepost.get_read_keylist();
+                  parsepost.get_seek_reset();
+                  set resp.http.n3 = parsepost.get_read_keylist();
+                  set resp.http.n4 = parsepost.get_read_keylist();
+                  //nothing
+                  set resp.http.n5 = parsepost.get_read_keylist();
+                }
+                
+                //return
+                n1: name2
+                n2: name1
+                n3: name2
+                n4: name1
 
 
 INSTALLATION
@@ -111,7 +275,12 @@ Tested Version
 HISTORY
 ===========
 
+Version 0.4: add get keylist function.
+
+Version 0.3: support GET,COOKIE, modify interface.
+
 Version 0.2: rename module(postparse -> parsepost)
+
 Version 0.1: add function parse
 
 COPYRIGHT
