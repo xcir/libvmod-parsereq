@@ -8,7 +8,7 @@ Varnish parse post data module
 
 :Author: Syohei Tanaka(@xcir)
 :Date: 2012-06-10
-:Version: 0.4
+:Version: 0.5
 :Manual section: 3
 
 SYNOPSIS
