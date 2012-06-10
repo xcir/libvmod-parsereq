@@ -4,7 +4,6 @@
 	todo:
 		urlencode系でのsetheader系がカオスなので見直す
 		vmodreq_setheadがカオスってる
-		urlencode系で最大サイズをもらってからNULLで終了しない（クッキーで妙なの送られてきた時の対策(
 		リビルドをするときはseekをNULLにリセット
 */
 //////////////////////////////////////////
@@ -596,8 +595,10 @@ int vmodreq_decode_urlencode(struct sess *sp,char *body,enum VMODREQ_TYPE type,c
 		if(size<0) break;
 		start = tmpbody;
 		if(!tmpbody[0] || strlen(tmpbody)==0) break;
-		sc_eq = strchr(tmpbody,eq);
-		sc_amp = strchr(tmpbody,amp);
+//		sc_eq = strchr(tmpbody,eq);
+//		sc_amp = strchr(tmpbody,amp);
+		sc_eq = memchr(tmpbody,eq,size);
+		sc_amp = memchr(tmpbody,amp,size);
 		//////////////////////////////
 		//search word
 		if(sc_amp < sc_eq && sc_amp){
@@ -617,7 +618,9 @@ int vmodreq_decode_urlencode(struct sess *sp,char *body,enum VMODREQ_TYPE type,c
 			continue;
 		}
 		if(!sc_amp){
-			sc_amp = sc_eq + strlen(tmpbody);
+			
+			//sc_amp = sc_eq + strlen(tmpbody);
+			sc_amp = tmpbody + size;
 		}
 		
 		//////////////////////////////
@@ -633,17 +636,21 @@ int vmodreq_decode_urlencode(struct sess *sp,char *body,enum VMODREQ_TYPE type,c
 		//////////////////////////////
 		//build body
 		tmpbody   = sc_eq + 1;
-		tmp2=sc_amp[0];
-		sc_amp[0] = 0;// & -> null
+//		syslog(6,"size %s %s %d %d",tmphead,tmpbody,strlen(tmpbody),sc_amp - tmpbody);
+//		tmp2=sc_amp[0];
+//		sc_amp[0] = 0;// & -> null
+		
+//		syslog(6,"XXXsize %d %d",strlen(tmpbody),sc_amp - tmpbody);
 
 		//////////////////////////////
 		//set header
 		
 //		syslog(6,"store-->head %s %s",tmphead,tmpbody);
-		vmodreq_sethead(c,type,tmphead,tmpbody,strlen(tmpbody));
+//		vmodreq_sethead(c,type,tmphead,tmpbody,strlen(tmpbody));
+		vmodreq_sethead(c,type,tmphead,tmpbody,sc_amp - tmpbody);
 		
-		sc_eq[0]  = tmp;
-		sc_amp[0] = tmp2;
+		sc_eq[0]  = tmp;//thead
+//		sc_amp[0] = tmp2;//tbody
 		tmpbody   = sc_amp + 1;
 		while(1){
 			//クッキー向け（Keyの先頭にスペースが入ることがあるんで
