@@ -8,7 +8,7 @@ Varnish parse post data module
 
 :Author: Syohei Tanaka(@xcir)
 :Date: 2012-06-10
-:Version: 0.3
+:Version: 0.4
 :Manual section: 3
 
 SYNOPSIS
@@ -115,6 +115,85 @@ Example
                 //return
                 hoge: hoge=hogevalue&mage=magevalue
 
+
+XXX_read_keylist (XXX=post,get,cookie)
+----------------------------------------
+
+Prototype
+        ::
+
+                post_read_keylist()
+                get_read_keylist()
+                cookie_read_keylist()
+
+Parameter
+
+Return value
+	STRING
+
+Description
+	get (get,post,cookie) key name.
+
+Example
+        ::
+
+                //req
+                /?name1=a&name2=b
+                
+                //vcl
+                vcl_deliver{
+                  set resp.http.n1 = parsepost.get_read_keylist();
+                  set resp.http.n2 = parsepost.get_read_keylist();
+                  //nothing
+                  set resp.http.n3 = parsepost.get_read_keylist();
+                }
+                
+                //return
+                n1: name2
+                n2: name1
+
+XXX_seek_reset (XXX=post,get,cookie)
+----------------------------------------
+
+Prototype
+        ::
+
+                post_seek_reset()
+                get_seek_reset()
+                cookie_seek_reset()
+
+Parameter
+
+Return value
+	VOID
+
+Description
+	to reset the seek index.
+
+Example
+        ::
+
+                //req
+                /?name1=a&name2=b
+                
+                //vcl
+                vcl_deliver{
+                  set resp.http.n1 = parsepost.get_read_keylist();
+                  set resp.http.n2 = parsepost.get_read_keylist();
+                  parsepost.get_seek_reset();
+                  set resp.http.n3 = parsepost.get_read_keylist();
+                  set resp.http.n4 = parsepost.get_read_keylist();
+                  //nothing
+                  set resp.http.n5 = parsepost.get_read_keylist();
+                }
+                
+                //return
+                n1: name2
+                n2: name1
+                n3: name2
+                n4: name1
+
+
 INSTALLATION
 ==================
 
@@ -155,8 +234,12 @@ Tested Version
 HISTORY
 ===========
 
+Version 0.4: add get keylist function.
+
 Version 0.3: support GET,COOKIE, modify interface.
+
 Version 0.2: rename module(postparse -> parsepost)
+
 Version 0.1: add function parse
 
 COPYRIGHT
