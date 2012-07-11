@@ -815,7 +815,7 @@ int vmodreq_post_parse(struct sess *sp){
 
 }
 void vmod_init(struct sess *sp){
-	vmodreq_get(sp)->parse_ret;
+	vmodreq_get(sp);
 }
 int vmod_errcode(struct sess *sp){
 	if(!vmodreq_get_raw(sp)){
