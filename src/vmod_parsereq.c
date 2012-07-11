@@ -72,6 +72,7 @@ void vmodreq_init_post(struct sess *sp,struct vmod_request *c){
 	if(sp->htc->pipeline.b == NULL) return;
 	int len = Tlen(sp->htc->pipeline);
 	c->raw_post = calloc(1, len +1);
+	AN(c->raw_post);
 	c->size_post = len;
 	c->raw_post[len]=0;
 	memcpy(c->raw_post,sp->htc->pipeline.b,len);
@@ -87,6 +88,7 @@ void vmodreq_init_get(struct sess *sp,struct vmod_request *c){
 	int len = strlen(sc_q);
 //	syslog(6,"[%s]",sc_q);
 	c->raw_get = calloc(1, len +1);
+	AN(c->raw_get);
 	c->size_get = len;
 
 	c->raw_get[len]=0;
@@ -101,6 +103,7 @@ void vmodreq_init_cookie(struct sess *sp,struct vmod_request *c){
 	if(!r) return;
 	int len = strlen(r);
 	c->raw_cookie = calloc(1, len +1);
+	AN(c->raw_cookie);
 	c->size_cookie = len;
 	c->raw_cookie[len]=0;
 	memcpy(c->raw_cookie,r,len);
@@ -233,9 +236,9 @@ void vmodreq_sethead(struct vmod_request *c, enum VMODREQ_TYPE type,const char *
 		h->key = strndup(key,strlen(key));
 		AN(h->key);
 		h->value = calloc(1,size+1);
+		AN(h->value);
 		
 		/////////////
-		AN(h->value);
 		memcpy(h->value,value,size);
 
 	}
@@ -812,7 +815,7 @@ int vmodreq_post_parse(struct sess *sp){
 
 }
 void vmod_init(struct sess *sp){
-	return vmodreq_get(sp)->parse_ret;
+	vmodreq_get(sp)->parse_ret;
 }
 int vmod_errcode(struct sess *sp){
 	if(!vmodreq_get_raw(sp)){
