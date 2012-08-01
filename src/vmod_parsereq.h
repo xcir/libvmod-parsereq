@@ -28,6 +28,7 @@ typedef ssize_t HTC_READ303(struct worker *w, struct http_conn *htc, void *d, si
 
 //////////////////////////////////////////
 //Hook
+static unsigned           hook_done          = 0;
 static vcl_func_f         *vmod_Hook_miss    = NULL;
 static vcl_func_f         *vmod_Hook_pass    = NULL;
 static vcl_func_f         *vmod_Hook_pipe    = NULL;

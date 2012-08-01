@@ -146,9 +146,11 @@ struct vmod_request *vmodreq_init(struct sess *sp){
 	r = vmodreq_cookie_parse(sp);
 	
 	//hook for vcl function
-	if(vmod_Hook_pipe == NULL || (vmod_Hook_unset_bereq == sp->vcl->pipe_func)){
+	if(hook_done == 1 && sp->vcl->deliver_func != vmod_Hook_unset_deliver) hook_done = 0;
+	
+	if(hook_done == 0){
 		AZ(pthread_mutex_lock(&vmod_mutex));
-		if(vmod_Hook_pipe == NULL){
+		if(hook_done == 0){
 			
 			vmod_Hook_deliver		= sp->vcl->deliver_func;
 			sp->vcl->deliver_func	= vmod_Hook_unset_deliver;
@@ -162,6 +164,7 @@ struct vmod_request *vmodreq_init(struct sess *sp){
 			vmod_Hook_pipe			= sp->vcl->pipe_func;
 			sp->vcl->pipe_func		= vmod_Hook_unset_bereq;
 			
+			hook_done				= 1;
 
 		}
 		AZ(pthread_mutex_unlock(&vmod_mutex));
