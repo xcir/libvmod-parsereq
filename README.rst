@@ -275,7 +275,7 @@ Tested Version
 HISTORY
 ===========
 
-Version 0.6: Bug fix: when you vcl reloaded, hook method come off.
+Version 0.6: Bug fix: when you vcl reloaded, hook method be off.
 
 Version 0.5: rename module(parsepost -> parsereq)
 
