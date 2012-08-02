@@ -2,9 +2,9 @@
 vmod_parsereq
 ===================
 
--------------------------------
-Varnish parse post data module
--------------------------------
+-------------------------
+Varnish parse data module
+-------------------------
 
 :Author: Syohei Tanaka(@xcir)
 :Date: 2012-08-02
@@ -22,7 +22,7 @@ DESCRIPTION
 ATTENTION
 ============
 
-don’t use varnishadm’s command "vcl.use" and "vcl.discard" . because to the segfault or call to other vcl function.
+Don’t use "vcl.use" and "vcl.discard" on VCL with the vmod loaded. This will cause the a segfault. 
 
 FUNCTIONS
 ============
@@ -46,7 +46,8 @@ Return value
 Description
 	initialize.
 	
-	please write parsereq.init(); to 1st line in vcl_recv.
+	Make sure to call parsereq.init() in vcl_recv before using 
+	any other function.
 
 Example
         ::
@@ -72,11 +73,11 @@ Return value
 
                 int errorcode
                 
-                (sucess) 2   unknown or none content-type.
-                (sucess) 1   parse complete.
-                (error)  -1  less sess_workspace.(you try to increase the sess_workspace)
-                (error)  -2  none content-length key.
-                (error)  -3  readable data < content-length.
+                (sucess) 2   Unknown or missing content-type.
+                (sucess) 1   Parse complete.
+                (error)  -1  Out of session workspace. Try to increase sess_workspace
+                (error)  -2  No content-length key.
+                (error)  -3  Readable data < content-length.
                 
 
 Description
@@ -95,8 +96,8 @@ Example
                   }
                 }
 
-XXX_header (XXX=post,get,cookie)
------------------------------------
+post_header/get_header/cookie_header
+------------------------------------
 
 Prototype
         ::
@@ -108,18 +109,17 @@ Parameter
         ::
 
                 STRING key
-                  data you want to get.
+                  Desired key value 
 
 	
 Return value
-	STRING (NOT ESCAPED)
+	STRING (not escaped)
 Description
-	get value.
+	Get value.
 
 Example
         ::
 
-                //vcl
                 vcl_deliver{
                   set resp.http.hoge = parsereq.post_header("hoge");
                 }
@@ -127,8 +127,8 @@ Example
                 //return
                 hoge: hogevalue
 
-XXX_body (XXX=post,get,cookie)
------------------------------------
+post_body/get_body/cookie_body
+------------------------------
 
 Prototype
         ::
@@ -143,11 +143,11 @@ Return value
 	STRING (NOT ESCAPED)
 
 Description
-	get (get,post,cookie) raw data.
+	Get (get,post,cookie) raw data.
 	
-	this function is dangerous.
-	raw data is not escape.
-	if you want to use ,require a thorough understanding of risk.
+	This function is dangerous. The raw data is not escaped.
+	Usage of this require a thorough understanding of the risks
+	involved.
 
 Example
         ::
@@ -161,8 +161,8 @@ Example
                 hoge: hoge=hogevalue&mage=magevalue
 
 
-XXX_read_keylist (XXX=post,get,cookie)
-----------------------------------------
+post_read_keylist/get_read_keylist/cookie_read_keylist
+------------------------------------------------------
 
 Prototype
         ::
@@ -197,8 +197,8 @@ Example
                 n1: name2
                 n2: name1
 
-XXX_seek_reset (XXX=post,get,cookie)
-----------------------------------------
+post_seek_reset/get_seek_reset/cookie_seek_reset
+------------------------------------------------
 
 Prototype
         ::
@@ -213,7 +213,7 @@ Return value
 	VOID
 
 Description
-	to reset the seek index.
+	Reset the seek index.
 
 Example
         ::
@@ -242,7 +242,7 @@ Example
 INSTALLATION
 ==================
 
-Installation requires Varnish source tree.
+Installation requires a Varnish source tree.
 
 Usage::
 
@@ -266,7 +266,8 @@ Make targets:
 Trouble shooting
 =================
 
-you try to increase the sess_workspace,http_req_size and stack size(ulimit -s)
+You could try to increase the sess_workspace and http_req_size
+parameters and stack size(ulimit -s).
 
 Tested Version
 ===============
