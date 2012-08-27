@@ -88,7 +88,7 @@ Example
                 import parsereq;
                 
                 vcl_recv{
-                  if(parsereq.init()<1){
+                  if(parsereq.errorcode()<1){
                   
                     ...
                   
@@ -274,7 +274,7 @@ Tested Version
 * 3.0.1
 * 3.0.2
 * 3.0.2-streaming
-* 3.0.3-rc1
+* 3.0.3
 
 HISTORY
 ===========
