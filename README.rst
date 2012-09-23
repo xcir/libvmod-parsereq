@@ -89,7 +89,7 @@ Example
                 import parsereq;
                 
                 vcl_recv{
-                  if(parsereq.errorcode()<1){
+                  if(parsereq.errcode()<1){
                   
                     ...
                   
