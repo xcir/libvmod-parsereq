@@ -36,6 +36,9 @@ static vcl_func_f         *vmod_Hook_deliver = NULL;
 
 static pthread_mutex_t    vmod_mutex = PTHREAD_MUTEX_INITIALIZER;
 
+//////////////////////////////////////////
+//Debug
+static unsigned           is_debug           = 0;
 
 //////////////////////////////////////////
 //for internal head
@@ -114,3 +117,5 @@ int vmodreq_decode_urlencode(struct sess *,char *,enum VMODREQ_TYPE,char,char,in
 
 const char *vmodreq_seek(struct sess *, enum VMODREQ_TYPE );
 void vmodreq_seek_reset(struct sess *, enum VMODREQ_TYPE );
+
+void debugmsg(struct sess *,const char*,...);

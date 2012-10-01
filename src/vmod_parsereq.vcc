@@ -21,3 +21,4 @@ Function VOID cookie_seek_reset()
 Function VOID   init()
 Function INT    errcode()
 
+Function VOID   debuginit()

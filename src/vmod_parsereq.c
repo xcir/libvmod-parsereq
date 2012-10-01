@@ -407,6 +407,7 @@ static int vmod_Hook_unset_deliver(struct sess *sp){
 	c = vmodreq_get_raw(sp);
 	if(c)
 		vmodreq_free(c);
+	debugmsg(sp,"vmprd %d <<<<<<<<<<<<<<<end",sp->xid);
 
 	return(ret);
 
@@ -693,10 +694,11 @@ int vmodreq_get_parse(struct sess *sp){
 
 
 int vmodreq_reqbody(struct sess *sp, char**body,int *orig_content_length){
+	debugmsg(sp,"vmprd %d vmodreq_reqbody|start",sp->xid);
 	unsigned long		content_length;
 	char 				*h_clen_ptr;
-	int					buf_size, rsize;
-	char				buf[1024];
+	int					buf_size, rsize, re;
+	char				buf[2048];
 	enum VMODREQ_PARSE	exec;
 
 	//////////////////////////////
@@ -707,6 +709,7 @@ int vmodreq_reqbody(struct sess *sp, char**body,int *orig_content_length){
 		return -2;
 	}
 	*orig_content_length = content_length = strtoul(h_clen_ptr, NULL, 10);
+	debugmsg(sp,"vmprd %d vmodreq_reqbody|content-length %ld",sp->xid,content_length);
 	if (content_length <= 0) {
 		//illegal length
 		return -2;
@@ -715,14 +718,18 @@ int vmodreq_reqbody(struct sess *sp, char**body,int *orig_content_length){
 	//Check POST data is loaded
 	if(sp->htc->pipeline.b != NULL && Tlen(sp->htc->pipeline) == content_length){
 		//complete read
+		debugmsg(sp,"vmprd %d vmodreq_reqbody|compete read",sp->xid);
 		*body = sp->htc->pipeline.b;
 	}else{
 		//incomplete read
+		debugmsg(sp,"vmprd %d vmodreq_reqbody|incompete read",sp->xid);
 		int rxbuf_size = Tlen(sp->htc->rxbuf);
+		debugmsg(sp,"vmprd %d vmodreq_reqbody|rxbufsize len:%d",sp->xid,rxbuf_size);
 		///////////////////////////////////////////////
 		//use ws
 		int u = WS_Reserve(sp->wrk->ws, 0);
 		if(u < content_length + rxbuf_size + 1){
+			debugmsg(sp,"vmprd %d vmodreq_reqbody|none space(-1)",sp->xid);
 			WS_Release(sp->wrk->ws,0);
 			return -1;
 		}
@@ -734,9 +741,10 @@ int vmodreq_reqbody(struct sess *sp, char**body,int *orig_content_length){
 		sp->htc->rxbuf.e = *body;
 		WS_Release(sp->wrk->ws,content_length + rxbuf_size + 1);
 		///////////////////////////////////////////////
-		
+		debugmsg(sp,"vmprd %d vmodreq_reqbody|old pipeline e:%ld b:%ld len:%ld",sp->xid,sp->htc->pipeline.b ,sp->htc->pipeline.e, sp->htc->pipeline.e - sp->htc->pipeline.b);
 		//////////////////////////////
 		//read post data
+		re = 0;
 		while (content_length) {
 			if (content_length > sizeof(buf)) {
 				buf_size = sizeof(buf) - 1;
@@ -748,22 +756,30 @@ int vmodreq_reqbody(struct sess *sp, char**body,int *orig_content_length){
 			// read body data into 'buf'
 			//rsize = HTC_Read(sp->htc, buf, buf_size);
 			rsize = vmod_HTC_Read(sp->wrk, sp->htc, buf, buf_size);
+			debugmsg(sp,"vmprd %d vmodreq_reqbody|HTC_Read len:%d",sp->xid,rsize);
 			if (rsize <= 0) {
 				return -3;
 			}
 
 			content_length -= rsize;
 
-			strncat(*body, buf, buf_size);
+			memcpy(*body + re, buf, buf_size);
+			
+			//strncat(*body, buf, buf_size);
+			re += rsize;
 		}
+		
 		sp->htc->pipeline.b = *body;
 		sp->htc->pipeline.e = *body + *orig_content_length;
+		debugmsg(sp,"vmprd %d vmodreq_reqbody|new pipeline e:%ld b:%ld len:%ld",sp->xid,sp->htc->pipeline.b ,sp->htc->pipeline.e, sp->htc->pipeline.e - sp->htc->pipeline.b);
+
 	}
 	return 1;
 }
 
 
 int vmodreq_post_parse(struct sess *sp){
+	debugmsg(sp,"vmprd %d >>>>>>>>>>>>>>>start",sp->xid);
 
 /*
 	2	=sucess		unknown or none content-type
@@ -780,7 +796,6 @@ int vmodreq_post_parse(struct sess *sp){
 	//////////////////////////////
 	//check Content-Type
 	h_ctype_ptr = VRT_GetHdr(sp, HDR_REQ, "\015Content-Type:");
-	
 	if(h_ctype_ptr != NULL){
 		if      (h_ctype_ptr == strstr(h_ctype_ptr, "application/x-www-form-urlencoded")) {
 			//application/x-www-form-urlencoded
@@ -795,6 +810,8 @@ int vmodreq_post_parse(struct sess *sp){
 		//none support type
 		exec = UNKNOWN;
 	}
+	debugmsg(sp,"vmprd %d vmodreq_post_parse|content-type|%d",sp->xid,exec);
+	
 	//thinking....
 	if(exec == UNKNOWN) return 2;
 	
@@ -820,9 +837,24 @@ int vmodreq_post_parse(struct sess *sp){
 void vmod_init(struct sess *sp){
 	vmodreq_get(sp);
 }
+
+void vmod_debuginit(struct sess *sp)
+{
+	is_debug = 1;
+	vmodreq_get(sp);
+}
+
 int vmod_errcode(struct sess *sp){
 	if(!vmodreq_get_raw(sp)){
 		VRT_panic(sp,"please write \"parsereq.init();\" to 1st line in vcl_recv.",vrt_magic_string_end);
 	}
 	return vmodreq_get(sp)->parse_ret;
+}
+
+void debugmsg(struct sess *sp,const char* f,...){
+	if(!is_debug) return;
+	va_list ap;
+	va_start(ap, f);
+	vsyslog(LOG_NOTICE, f ,ap);
+	va_end(ap);
 }

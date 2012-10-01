@@ -7,8 +7,8 @@ Varnish parse data module
 -------------------------
 
 :Author: Syohei Tanaka(@xcir)
-:Date: 2012-08-02
-:Version: 0.6
+:Date: 2012-10-02
+:Version: 0.7
 :Manual section: 3
 
 SYNOPSIS
@@ -22,7 +22,7 @@ DESCRIPTION
 ATTENTION
 ============
 
-Don’t use "vcl.use" and "vcl.discard" on VCL with the vmod loaded. This will cause the a segfault. 
+Don't use "vcl.use" and "vcl.discard" on VCL with the vmod loaded. This will cause the a segfault. 
 
 FUNCTIONS
 ============
@@ -279,6 +279,8 @@ Tested Version
 
 HISTORY
 ===========
+
+Version 0.7: Bug fix: forgot to care binary.
 
 Version 0.6: Bug fix: when you vcl reloaded, hook method be off.
 
