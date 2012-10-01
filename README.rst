@@ -280,19 +280,21 @@ Tested Version
 HISTORY
 ===========
 
-Version 0.7: Bug fix: forgot to care binary.
+Version 0.8: Support unknown content-type.(post_body only) [issue #3 Thanks c0ze]
+
+Version 0.7: Bug fix: forgot to care binary. [issue #4 Thanks dnewhall]
 
 Version 0.6: Bug fix: when you vcl reloaded, hook method be off.
 
-Version 0.5: rename module(parsepost -> parsereq)
+Version 0.5: Rename module(parsepost -> parsereq)
 
-Version 0.4: add get keylist function.
+Version 0.4: Add get keylist function.
 
-Version 0.3: support GET,COOKIE, modify interface.
+Version 0.3: Support GET,COOKIE, modify interface.
 
-Version 0.2: rename module(postparse -> parsepost)
+Version 0.2: Rename module(postparse -> parsepost)
 
-Version 0.1: add function parse
+Version 0.1: Add function parse
 
 COPYRIGHT
 =============

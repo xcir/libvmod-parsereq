@@ -812,12 +812,11 @@ int vmodreq_post_parse(struct sess *sp){
 	}
 	debugmsg(sp,"vmprd %d vmodreq_post_parse|content-type|%d",sp->xid,exec);
 	
-	//thinking....
-	if(exec == UNKNOWN) return 2;
+
 	
 	//get request body
 	ret = vmodreq_reqbody(sp,&body,&content_length);
-	if(ret<1) return ret;
+	if(ret<1 && exec != UNKNOWN) return ret;
 
 	//decode form
 	switch(exec){
@@ -828,6 +827,7 @@ int vmodreq_post_parse(struct sess *sp){
 			ret = decodeForm_multipart(sp, body);
 			break;
 		case UNKNOWN:
+			ret = 2;
 			break;
 		
 	}
