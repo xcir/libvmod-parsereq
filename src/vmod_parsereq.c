@@ -128,9 +128,8 @@ struct vmod_request *vmodreq_init(struct sess *sp){
 	AN(c->get);
 	ALLOC_OBJ(c->cookie,VMOD_HEADERS_MAGIC);
 	AN(c->cookie);
-//	syslog(6,"PNT   %lu %lu %lu",c->post,c->get,c->cookie);
 	//assign pointer
-	snprintf(buf,64,"%lu",c);
+	snprintf(buf,64,"%ld",c);
 	VRT_SetHdr(sp, HDR_REQ, POST_REQ_HDR, buf,vrt_magic_string_end);
 
 	//parse post data
