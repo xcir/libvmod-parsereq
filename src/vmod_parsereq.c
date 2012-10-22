@@ -113,7 +113,6 @@ void vmodreq_init_cookie(struct sess *sp,struct vmod_request *c){
 ////////////////////////////////////////////////////
 //init structure
 struct vmod_request *vmodreq_init(struct sess *sp){
-
 	struct vmod_request *c;
 	int r;
 	char buf[64];

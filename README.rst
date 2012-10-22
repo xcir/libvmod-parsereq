@@ -7,8 +7,8 @@ Varnish parse data module
 -------------------------
 
 :Author: Syohei Tanaka(@xcir)
-:Date: 2012-10-02
-:Version: 0.8
+:Date: 2012-10-23
+:Version: 0.9
 :Manual section: 3
 
 SYNOPSIS
@@ -272,13 +272,15 @@ parameters and stack size(ulimit -s).
 Tested Version
 ===============
 
-* 3.0.1
-* 3.0.2
-* 3.0.2-streaming
-* 3.0.3
+* 3.0.1(x86_64)
+* 3.0.2(x86_64)
+* 3.0.2-streaming(x86_64)
+* 3.0.3(x86, x86_64)
 
 HISTORY
 ===========
+
+Version 0.9: Bug fix: always segfault on x86. And sometimes segfault on x86_64. [issue #5 Thanks comotion]
 
 Version 0.8: Support unknown content-type.(post_body only) [issue #3 Thanks c0ze]
 
