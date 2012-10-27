@@ -27,7 +27,9 @@ Function STRING post_read_cur()
 Function STRING get_read_cur()
 Function STRING cookie_read_cur()
 
+Function VOID post_read_iterate(STRING)
 Function VOID get_read_iterate(STRING)
+Function VOID cookie_read_iterate(STRING)
 
 Function VOID post_seek_reset()
 Function VOID get_seek_reset()
