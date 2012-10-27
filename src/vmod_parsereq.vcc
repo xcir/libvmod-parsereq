@@ -6,13 +6,28 @@ Function STRING post_header(STRING)
 Function STRING get_header(STRING)
 Function STRING cookie_header(STRING)
 
+Function INT post_size(STRING)
+Function INT get_size(STRING)
+Function INT cookie_size(STRING)
+
 Function STRING post_body()
 Function STRING get_body()
 Function STRING cookie_body()
 
+
 Function STRING post_read_keylist()
 Function STRING get_read_keylist()
 Function STRING cookie_read_keylist()
+
+Function VOID post_read_next()
+Function VOID get_read_next()
+Function VOID cookie_read_next()
+
+Function STRING post_read_cur()
+Function STRING get_read_cur()
+Function STRING cookie_read_cur()
+
+Function VOID get_read_iterate(STRING)
 
 Function VOID post_seek_reset()
 Function VOID get_seek_reset()

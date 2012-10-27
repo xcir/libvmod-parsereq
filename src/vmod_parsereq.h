@@ -114,8 +114,15 @@ int vmodreq_getheadersize(struct vmod_request *, enum VMODREQ_TYPE , const char 
 struct hdr *vmodreq_getrawheader(struct vmod_request *, enum VMODREQ_TYPE , const char *);
 int vmodreq_decode_urlencode(struct sess *,char *,enum VMODREQ_TYPE,char,char,int);
 
-
+int vmodreq_hdr_count(struct sess *, enum VMODREQ_TYPE );
 const char *vmodreq_seek(struct sess *, enum VMODREQ_TYPE );
 void vmodreq_seek_reset(struct sess *, enum VMODREQ_TYPE );
 
 void debugmsg(struct sess *,const char*,...);
+
+typedef int (*vcl_userdef_func)(struct sess *sp);
+
+const char* vmod_read_cur(struct sess *, enum VMODREQ_TYPE);
+void vmod_read_iterate(struct sess *, const char* , enum VMODREQ_TYPE type);
+
+int vmodreq_headersize(struct sess *, enum VMODREQ_TYPE , const char *);
