@@ -1,0 +1,37 @@
+varnishtest "current key(cookie)"
+
+server s1 {
+       rxreq
+       txresp
+} -start
+
+varnish v1 -vcl+backend {
+	import parsereq from "${vmod_topbuild}/src/.libs/libvmod_parsereq.so";
+
+	sub vcl_recv {
+		parsereq.init();
+	}
+	sub vcl_deliver{
+		set resp.http.t1 = ":" + parsereq.cookie_read_cur();
+		parsereq.cookie_read_next();
+		set resp.http.t2 = ":" + parsereq.cookie_read_cur();
+		parsereq.cookie_read_next();
+		set resp.http.t3 = ":" + parsereq.cookie_read_cur();
+		parsereq.cookie_read_next();
+		set resp.http.t4 = ":" + parsereq.cookie_read_cur();
+	}
+} -start
+
+client c1 {
+	txreq -req GET -url "/" -hdr "Cookie: a=1234;"
+	rxresp
+	expect resp.http.t1   == ":"
+	expect resp.http.t2   == ":a"
+	expect resp.http.t3   == ":a"
+	expect resp.http.t4   == ":a"
+
+
+}
+
+
+client c1 -run

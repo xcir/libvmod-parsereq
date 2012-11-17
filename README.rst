@@ -8,7 +8,7 @@ Varnish parse data module
 
 :Author: Syohei Tanaka(@xcir)
 :Date: 2012-10-02
-:Version: 0.8
+:Version: 0.9-iterate
 :Manual section: 3
 
 SYNOPSIS
@@ -81,7 +81,7 @@ Return value
                 
 
 Description
-	get status code.
+	Get status code.
 
 Example
         ::
@@ -239,6 +239,190 @@ Example
                 n4: name1
 
 
+post_size/get_size/cookie_size
+------------------------------------------------
+
+Prototype
+        ::
+
+                post_size(STRING key)
+                get_size(STRING key)
+                cookie_size(STRING key)
+
+Parameter
+        ::
+
+                STRING key
+                  Desired key value 
+
+	
+Return value
+	INT
+
+Description
+	Get the size of value.
+
+Example
+        ::
+
+                //req
+                /?name1=a&name2=bbb
+                
+                //vcl
+                vcl_deliver{
+                  set resp.http.n1 = parsereq.get_size("name1");
+                  set resp.http.n2 = parsereq.get_size("name2");
+                  //nothing
+                  set resp.http.na = parsereq.get_size("name99");
+                }
+                
+                //return
+                n1: 1
+                n2: 3
+                na: 0
+
+post_read_cur/get_read_cur/cookie_read_cur
+------------------------------------------------
+
+Prototype
+        ::
+
+                post_read_cur()
+                get_read_cur()
+                cookie_read_cur()
+
+Parameter
+
+	
+Return value
+	STRING
+
+Description
+	Get current key-name of the offset.
+
+Example
+        ::
+
+                //req
+                /?name1=a&name2=bbb
+                
+                //vcl
+                vcl_deliver{
+                  set resp.http.t1 = ">>" + parsereq.get_read_cur();
+                  parsereq.get_read_next();
+                  set resp.http.t2 = ">>" + parsereq.get_read_cur();
+                  parsereq.get_read_next();
+                  set resp.http.t3 = ">>" + parsereq.get_read_cur();
+                  parsereq.get_read_next();
+                  set resp.http.t4 = ">>" + parsereq.get_read_cur();
+                }
+                
+                //return
+                t1: >>
+                t2: >>name2
+                t3: >>name1
+                t4: >>name1
+                
+
+
+post_read_next/get_read_next/cookie_read_next
+------------------------------------------------
+
+Prototype
+        ::
+
+                post_read_next()
+                get_read_next()
+                cookie_read_next()
+
+Parameter
+
+	
+Return value
+	VOID
+
+Description
+	Change to the next key.
+	If next key isn't exist, will not change.
+
+
+Example
+        ::
+
+                //req
+                /?name1=a&name2=bbb
+                
+                //vcl
+                vcl_deliver{
+                  set resp.http.t1 = ">>" + parsereq.get_read_cur();
+                  parsereq.get_read_next();
+                  set resp.http.t2 = ">>" + parsereq.get_read_cur();
+                  parsereq.get_read_next();
+                  set resp.http.t3 = ">>" + parsereq.get_read_cur();
+                  parsereq.get_read_next();
+                  set resp.http.t4 = ">>" + parsereq.get_read_cur();
+                }
+                
+                //return
+                t1: >>
+                t2: >>name2
+                t3: >>name1
+                t4: >>name1
+
+post_read_iterate/get_read_iterate/cookie_read_iterate
+------------------------------------------------
+
+Prototype
+        ::
+
+                post_read_iterate(STRING)
+                get_read_iterate(STRING)
+                cookie_read_iterate(STRING)
+
+Parameter
+
+	STRING subroutine pointer
+
+Return value
+	VOID
+
+Description
+	Count all elements in parameter for iterate the subroutine.
+
+
+Example
+        ::
+
+                //req
+                /?name1=a&name2=bbb
+                
+                //vcl
+                sub iterate {
+                  parsereq.get_read_next();
+                  set req.http.hoge = req.http.hoge + parsereq.get_read_cur() + ":";
+                  set req.http.hoge = req.http.hoge + parsereq.get_header(parsereq.get_read_cur()) + " ";
+                }
+                sub vcl_recv {
+                  parsereq.init();
+                  if(1 == 0){
+                    call iterate;
+                  }
+                  set req.http.hoge= "";
+                  C{
+                    Vmod_Func_parsereq.get_read_iterate(sp, (const char*)VGC_function_iterate);
+                  }C
+
+                }
+                sub vcl_deliver{
+                  set resp.http.t1 = req.http.hoge;
+                }
+                
+                //return
+                t1: name2:bbb name1:a 
+                
+
+
+
 INSTALLATION
 ==================
 
@@ -279,6 +463,9 @@ Tested Version
 
 HISTORY
 ===========
+
+
+Version 0.9: Bug fix: always segfault on x86. And sometimes segfault on x86_64. [issue #5 Thanks comotion]
 
 Version 0.8: Support unknown content-type.(post_body only) [issue #3 Thanks c0ze]
 
