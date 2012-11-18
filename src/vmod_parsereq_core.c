@@ -10,8 +10,7 @@
 //VMOD
 
 //////////////////////////////////////////
-//use for build head
-
+//パースした内容を開放する
 static void vmodreq_free(struct vmod_request *c) {
 	struct hdr *h, *h2;
 	CHECK_OBJ_NOTNULL(c, VMOD_REQUEST_MAGIC);
@@ -45,11 +44,8 @@ static void vmodreq_free(struct vmod_request *c) {
 }
 
 
-
-
-
 ////////////////////////////////////////////////////
-//store raw data
+//格納したパース構造体へのポインタを取得
 struct vmod_request *vmodreq_get_raw(struct sess *sp){
 	const char *tmp;
 	struct vmod_request *c;
@@ -63,6 +59,9 @@ struct vmod_request *vmodreq_get_raw(struct sess *sp){
 	return NULL;
 }
 
+
+////////////////////////////////////////////////////
+//各種データ（post,get,cookie）を取得する
 void vmodreq_init_post(struct sess *sp,struct vmod_request *c){
 	if(sp->htc->pipeline.b == NULL) return;
 	int len = Tlen(sp->htc->pipeline);
@@ -81,7 +80,6 @@ void vmodreq_init_get(struct sess *sp,struct vmod_request *c){
 	if(!(sc_q = strchr(url,'?'))) return;
 	sc_q++;
 	int len = strlen(sc_q);
-//	syslog(6,"[%s]",sc_q);
 	c->raw_get = calloc(1, len +1);
 	AN(c->raw_get);
 	c->size_get = len;
@@ -106,6 +104,7 @@ void vmodreq_init_cookie(struct sess *sp,struct vmod_request *c){
 
 
 ////////////////////////////////////////////////////
+//構造体を初期化
 //init structure
 struct vmod_request *vmodreq_init(struct sess *sp){
 
@@ -123,7 +122,6 @@ struct vmod_request *vmodreq_init(struct sess *sp){
 	AN(c->get);
 	ALLOC_OBJ(c->cookie,VMOD_HEADERS_MAGIC);
 	AN(c->cookie);
-//	syslog(6,"PNT   %lu %lu %lu",c->post,c->get,c->cookie);
 	//assign pointer
 	snprintf(buf,64,"%ld",c);
 	VRT_SetHdr(sp, HDR_REQ, POST_REQ_HDR, buf,vrt_magic_string_end);
@@ -170,6 +168,7 @@ struct vmod_request *vmodreq_init(struct sess *sp){
 
 
 ////////////////////////////////////////////////////
+//構造体へのポインタを取得（初期化されてないときは初期化を行う）
 //get structure pointer
 struct vmod_request *vmodreq_get(struct sess *sp){
 	struct vmod_request *c;
@@ -180,6 +179,7 @@ struct vmod_request *vmodreq_get(struct sess *sp){
 }
 
 ////////////////////////////////////////////////////
+//ヘッダフィールドを格納しているポインタを返却
 //get headers
 struct vmod_headers *vmodreq_getheaders(struct vmod_request *c, enum VMODREQ_TYPE type){
 
@@ -199,6 +199,7 @@ struct vmod_headers *vmodreq_getheaders(struct vmod_request *c, enum VMODREQ_TYP
 }
 
 ////////////////////////////////////////////////////
+//値を格納
 //store value
 void vmodreq_sethead(struct vmod_request *c, enum VMODREQ_TYPE type,const char *key, const char *value,int size)
 {
@@ -214,6 +215,7 @@ void vmodreq_sethead(struct vmod_request *c, enum VMODREQ_TYPE type,const char *
 	exhead = vmodreq_getrawheader(c,type,key);
 
 	if(exhead){
+		//既に値が存在する場合はカンマ区切りで連結
 		h = exhead;
 		//array key
 		ndsize = h->size;
@@ -241,7 +243,7 @@ void vmodreq_sethead(struct vmod_request *c, enum VMODREQ_TYPE type,const char *
 
 	}
 	//h->value = strndup(value,strlen(value));
-	if(strlen(value)==size+ndsize){
+	if(strlen(value) == size + ndsize){
 		h->bin = 0;
 	}else{
 		h->bin = 1;
@@ -253,6 +255,8 @@ void vmodreq_sethead(struct vmod_request *c, enum VMODREQ_TYPE type,const char *
 
 
 
+////////////////////////////////////////////////////
+//オフセットをリセットする
 void vmodreq_seek_reset(struct sess *sp, enum VMODREQ_TYPE type)
 {
 	if(!vmodreq_get_raw(sp)){
@@ -265,6 +269,8 @@ void vmodreq_seek_reset(struct sess *sp, enum VMODREQ_TYPE type)
 
 
 
+////////////////////////////////////////////////////
+//現在のオフセットのキーを取得
 const char* vmod_read_cur(struct sess *sp, enum VMODREQ_TYPE type){
 	if(!vmodreq_get_raw(sp)){
 		VRT_panic(sp,"please write \"parsereq.init();\" to 1st line in vcl_recv.",vrt_magic_string_end);
@@ -276,6 +282,8 @@ const char* vmod_read_cur(struct sess *sp, enum VMODREQ_TYPE type){
 	return hs->seek;
 }
 
+////////////////////////////////////////////////////
+//反復処理を行う
 void vmod_read_iterate(struct sess *sp, const char* p, enum VMODREQ_TYPE type){
 	vmodreq_seek_reset(sp,type);
 	int max = vmodreq_hdr_count(sp, type);
@@ -287,6 +295,8 @@ void vmod_read_iterate(struct sess *sp, const char* p, enum VMODREQ_TYPE type){
 }
 
 
+////////////////////////////////////////////////////
+//各ヘッダの個数を取得
 int vmodreq_hdr_count(struct sess *sp, enum VMODREQ_TYPE type)
 {
 	if(!vmodreq_get_raw(sp)){
@@ -308,6 +318,8 @@ int vmodreq_hdr_count(struct sess *sp, enum VMODREQ_TYPE type)
 }
 
 
+////////////////////////////////////////////////////
+//オフセットを移動する
 const char *vmodreq_seek(struct sess *sp, enum VMODREQ_TYPE type)
 {
 	if(!vmodreq_get_raw(sp)){
@@ -343,6 +355,8 @@ const char *vmodreq_seek(struct sess *sp, enum VMODREQ_TYPE type)
 }
 
 
+////////////////////////////////////////////////////
+//キー名から値の構造体を取得
 struct hdr *vmodreq_getrawheader(struct vmod_request *c, enum VMODREQ_TYPE type, const char *header)
 {
 	struct hdr *h;
@@ -353,9 +367,7 @@ struct hdr *vmodreq_getrawheader(struct vmod_request *c, enum VMODREQ_TYPE type,
 	hs = vmodreq_getheaders(c,type);
 	VTAILQ_FOREACH(h, &hs->headers, list) {
 //		++i;
-//		syslog(6,"---%d key=[%s] val=[%s] hk=[%s]",i,h->key,h->value,header);
 		if(!h->key && strcasecmp("", header) == 0){
-//			syslog(6,"ma:null");
 			r = h;
 			break;
 		}else if (strcasecmp(h->key, header) == 0) {
@@ -366,6 +378,9 @@ struct hdr *vmodreq_getrawheader(struct vmod_request *c, enum VMODREQ_TYPE type,
 //	syslog(6,"ret %s = %s",header,r);
 	return r;
 }
+
+////////////////////////////////////////////////////
+//値のサイズを取得
 int vmodreq_getheadersize(struct vmod_request *c, enum VMODREQ_TYPE type, const char *header)
 {
 	struct hdr *h;
@@ -378,6 +393,8 @@ int vmodreq_getheadersize(struct vmod_request *c, enum VMODREQ_TYPE type, const 
 }
 
 
+////////////////////////////////////////////////////
+//値を取得
 const char *vmodreq_getheader(struct vmod_request *c, enum VMODREQ_TYPE type, const char *header)
 {
 	struct hdr *h;
@@ -390,6 +407,8 @@ const char *vmodreq_getheader(struct vmod_request *c, enum VMODREQ_TYPE type, co
 }
 
 
+////////////////////////////////////////////////////
+//サイズを取得（呼び出し用にラップ）
 int vmodreq_headersize(struct sess *sp, enum VMODREQ_TYPE type, const char *header)
 {
 	if(!vmodreq_get_raw(sp)){
@@ -400,6 +419,8 @@ int vmodreq_headersize(struct sess *sp, enum VMODREQ_TYPE type, const char *head
 }
 
 
+////////////////////////////////////////////////////
+//値を取得（呼び出し用にラップ）
 const char *vmodreq_header(struct sess *sp, enum VMODREQ_TYPE type, const char *header)
 {
 	if(!vmodreq_get_raw(sp)){
@@ -410,6 +431,7 @@ const char *vmodreq_header(struct sess *sp, enum VMODREQ_TYPE type, const char *
 }
 
 //////////////////////////////////////////
+//フック時に呼び出される関数
 //hook function(miss,pass,pipe)
 static int vmod_Hook_unset_bereq(struct sess *sp){
 //	syslog(6,"unset %s",POST_REQ_HDR);
@@ -431,6 +453,7 @@ static int vmod_Hook_unset_bereq(struct sess *sp){
 
 }
 //////////////////////////////////////////
+//フック時に呼び出される関数（deliver)
 //hook function(deliver)
 static int vmod_Hook_unset_deliver(struct sess *sp){
 	int ret = vmod_Hook_deliver(sp);
@@ -444,6 +467,8 @@ static int vmod_Hook_unset_deliver(struct sess *sp){
 
 }
 
+//////////////////////////////////////////
+//文字列から列挙型VMODREQ_TYPEに変換
 enum VMODREQ_TYPE vmod_convtype(const char*type){
 	if (!strcmp(type, "post"))
 		return POST;
@@ -456,6 +481,7 @@ enum VMODREQ_TYPE vmod_convtype(const char*type){
 
 
 //////////////////////////////////////////
+//3.0.3からインタフェースが変更されたHTC_Readの対策
 //HTC_Read
 ssize_t vmod_HTC_Read(struct worker *w, struct http_conn *htc, void *d, size_t len){
 	if(type_htcread == 0){
@@ -483,6 +509,8 @@ ssize_t vmod_HTC_Read(struct worker *w, struct http_conn *htc, void *d, size_t l
 		
 }
 
+//////////////////////////////////////////
+//content-typeがマルチパートのデータをパースする
 int decodeForm_multipart(struct sess *sp,char *body){
 	
 
@@ -593,6 +621,8 @@ int decodeForm_multipart(struct sess *sp,char *body){
 	return 1;
 }
 
+//////////////////////////////////////////
+//URLエンコードされてるデータをパースする
 int vmodreq_decode_urlencode(struct sess *sp,char *body,enum VMODREQ_TYPE type,char eq,char amp,int size){
 	
 	char *sc_eq,*sc_amp;
@@ -681,6 +711,8 @@ int vmodreq_decode_urlencode(struct sess *sp,char *body,enum VMODREQ_TYPE type,c
 }
 
 
+//////////////////////////////////////////
+//クッキーをパース
 int vmodreq_cookie_parse(struct sess *sp){
 	struct vmod_request *c = vmodreq_get(sp);
 	if(!c->raw_cookie) return 1;
@@ -688,6 +720,8 @@ int vmodreq_cookie_parse(struct sess *sp){
 	return vmodreq_decode_urlencode(sp,c->raw_cookie,COOKIE,'=',';',c->size_cookie);
 }
 
+//////////////////////////////////////////
+//GETをパース
 int vmodreq_get_parse(struct sess *sp){
 	int ret=1;
 	struct vmod_request *c = vmodreq_get(sp);
@@ -698,6 +732,8 @@ int vmodreq_get_parse(struct sess *sp){
 
 
 
+//////////////////////////////////////////
+//リクエストBodyを取得
 int vmodreq_reqbody(struct sess *sp, char**body,int *orig_content_length){
 	debugmsg(sp,"vmprd %d vmodreq_reqbody|start",sp->xid);
 	unsigned long		content_length;
@@ -782,7 +818,8 @@ int vmodreq_reqbody(struct sess *sp, char**body,int *orig_content_length){
 	return 1;
 }
 
-
+//////////////////////////////////////////
+//POSTをパース
 int vmodreq_post_parse(struct sess *sp){
 	debugmsg(sp,"vmprd %d >>>>>>>>>>>>>>>start",sp->xid);
 
@@ -840,7 +877,8 @@ int vmodreq_post_parse(struct sess *sp){
 
 }
 
-
+//////////////////////////////////////////
+//デバッグ用
 void debugmsg(struct sess *sp,const char* f,...){
 	if(!is_debug) return;
 	va_list ap;
