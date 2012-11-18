@@ -259,6 +259,10 @@ void vmodreq_sethead(struct vmod_request *c, enum VMODREQ_TYPE type,const char *
 ////////////////////////////////////////////////////
 //get header value
 
+void vmod_reset_offset(struct sess *sp, const char* type){
+	vmodreq_seek_reset(sp,vmod_convtype(type));
+}
+
 void vmod_post_seek_reset(struct sess *sp){
 	vmodreq_seek_reset(sp,POST);
 }
@@ -267,6 +271,10 @@ void vmod_get_seek_reset(struct sess *sp){
 }
 void vmod_cookie_seek_reset(struct sess *sp){
 	vmodreq_seek_reset(sp,COOKIE);
+}
+
+const char *vmod_next_key(struct sess *sp, const char *type){
+	return vmodreq_seek(sp,vmod_convtype(type));
 }
 
 const char* vmod_get_read_keylist(struct sess *sp){
@@ -287,6 +295,10 @@ void vmodreq_seek_reset(struct sess *sp, enum VMODREQ_TYPE type)
 	struct vmod_request *c = vmodreq_get(sp);
 	struct vmod_headers *hs= vmodreq_getheaders(c,type);
 	hs->seek = NULL;
+}
+
+void vmod_next_offset(struct sess *sp, const char *type){
+	vmodreq_seek(sp,vmod_convtype(type));
 }
 
 void vmod_post_read_next(struct sess *sp){
@@ -312,6 +324,10 @@ const char* vmod_read_cur(struct sess *sp, enum VMODREQ_TYPE type){
 	hs = vmodreq_getheaders(c,type);
 	return hs->seek;
 }
+const char* vmod_current_key(struct sess *sp, const char* type){
+	return vmod_read_cur(sp,vmod_convtype(type));
+}
+
 const char* vmod_post_read_cur(struct sess *sp){
 	return vmod_read_cur(sp,POST);
 }
@@ -330,6 +346,10 @@ void vmod_read_iterate(struct sess *sp, const char* p, enum VMODREQ_TYPE type){
 	for(int i=0; i<max; i++){
 		func(sp);
 	}
+}
+
+void vmod_iterate(struct sess *sp, const char* type, const char* p){
+	vmod_read_iterate(sp,p,vmod_convtype(type));
 }
 
 void vmod_post_read_iterate(struct sess *sp, const char* p){
@@ -452,6 +472,11 @@ int vmodreq_headersize(struct sess *sp, enum VMODREQ_TYPE type, const char *head
 	struct vmod_request *c = vmodreq_get(sp);
 	return vmodreq_getheadersize(c,type,header);
 }
+int vmod_size(struct sess *sp, const char *type, const char *header)
+{
+	return vmodreq_headersize(sp,vmod_convtype(type) ,header);
+}
+
 int vmod_post_size(struct sess *sp, const char *header)
 {
 	return vmodreq_headersize(sp,POST,header);
@@ -510,6 +535,19 @@ static int vmod_Hook_unset_deliver(struct sess *sp){
 
 }
 
+enum VMODREQ_TYPE vmod_convtype(const char*type){
+	if (!strcmp(type, "post"))
+		return POST;
+	if (!strcmp(type, "get"))
+		return GET;
+	if (!strcmp(type, "cookie"))
+		return COOKIE;
+}
+
+
+const char *vmod_param(struct sess *sp, const char *type ,const char *header){
+	return vmodreq_header(sp,vmod_convtype(type) ,header);
+}
 
 const char *vmod_post_header(struct sess *sp, const char *header)
 {
@@ -660,6 +698,25 @@ int decodeForm_multipart(struct sess *sp,char *body){
 	}
 
 	return 1;
+}
+const char* vmod_body(struct sess *sp, const char *type){
+	if(!vmodreq_get_raw(sp)){
+		VRT_panic(sp,"please write \"parsereq.init();\" to 1st line in vcl_recv.",vrt_magic_string_end);
+	}
+	struct vmod_request *c = vmodreq_get(sp);
+	enum VMODREQ_TYPE t = vmod_convtype(type);
+	switch(t){
+		case POST:
+			return c->raw_post;
+			break;
+		case GET:
+			return c->raw_get;
+			break;
+		case COOKIE:
+			return c->raw_cookie;
+			break;
+	}
+
 }
 const char* vmod_post_body(struct sess *sp){
 	if(!vmodreq_get_raw(sp)){

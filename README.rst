@@ -7,8 +7,8 @@ Varnish parse data module
 -------------------------
 
 :Author: Syohei Tanaka(@xcir)
-:Date: 2012-10-02
-:Version: 0.9-iterate
+:Date: 2012-11-18
+:Version: 0.9-iterate-2
 :Manual section: 3
 
 SYNOPSIS
@@ -96,8 +96,8 @@ Example
                   }
                 }
 
-post_header/get_header/cookie_header
-------------------------------------
+post_header/get_header/cookie_header/param
+--------------------------------------------
 
 Prototype
         ::
@@ -105,6 +105,7 @@ Prototype
                 post_header(STRING key)
                 get_header(STRING key)
                 cookie_header(STRING key)
+                param(enum {post, get, cookie}, STRING key)
 Parameter
         ::
 
@@ -127,8 +128,8 @@ Example
                 //return
                 hoge: hogevalue
 
-post_body/get_body/cookie_body
-------------------------------
+post_body/get_body/cookie_body/body
+--------------------------------------
 
 Prototype
         ::
@@ -136,6 +137,7 @@ Prototype
                 post_body()
                 get_body()
                 cookie_body()
+                body(enum {post, get, cookie})
 
 Parameter
 
@@ -161,8 +163,8 @@ Example
                 hoge: hoge=hogevalue&mage=magevalue
 
 
-post_read_keylist/get_read_keylist/cookie_read_keylist
-------------------------------------------------------
+post_read_keylist/get_read_keylist/cookie_read_keylist/next_key
+-----------------------------------------------------------------
 
 Prototype
         ::
@@ -170,6 +172,7 @@ Prototype
                 post_read_keylist()
                 get_read_keylist()
                 cookie_read_keylist()
+                next_key(enum {post, get, cookie})
 
 Parameter
 
@@ -197,8 +200,8 @@ Example
                 n1: name2
                 n2: name1
 
-post_seek_reset/get_seek_reset/cookie_seek_reset
-------------------------------------------------
+post_seek_reset/get_seek_reset/cookie_seek_reset/reset_offset
+--------------------------------------------------------------
 
 Prototype
         ::
@@ -206,6 +209,7 @@ Prototype
                 post_seek_reset()
                 get_seek_reset()
                 cookie_seek_reset()
+                reset_offset(enum {post, get, cookie})
 
 Parameter
 
@@ -239,7 +243,7 @@ Example
                 n4: name1
 
 
-post_size/get_size/cookie_size
+post_size/get_size/cookie_size/size
 ------------------------------------------------
 
 Prototype
@@ -248,6 +252,7 @@ Prototype
                 post_size(STRING key)
                 get_size(STRING key)
                 cookie_size(STRING key)
+                size(enum {post, get, cookie}, STRING key)
 
 Parameter
         ::
@@ -281,8 +286,8 @@ Example
                 n2: 3
                 na: 0
 
-post_read_cur/get_read_cur/cookie_read_cur
-------------------------------------------------
+post_read_cur/get_read_cur/cookie_read_cur/current_key
+-----------------------------------------------------------
 
 Prototype
         ::
@@ -290,6 +295,7 @@ Prototype
                 post_read_cur()
                 get_read_cur()
                 cookie_read_cur()
+                current_key(enum {post, get, cookie})
 
 Parameter
 
@@ -325,8 +331,8 @@ Example
                 
 
 
-post_read_next/get_read_next/cookie_read_next
-------------------------------------------------
+post_read_next/get_read_next/cookie_read_next/next_offset
+-------------------------------------------------------------
 
 Prototype
         ::
@@ -334,6 +340,7 @@ Prototype
                 post_read_next()
                 get_read_next()
                 cookie_read_next()
+                next_offset(enum {post, get, cookie})
 
 Parameter
 
@@ -369,8 +376,8 @@ Example
                 t3: >>name1
                 t4: >>name1
 
-post_read_iterate/get_read_iterate/cookie_read_iterate
-------------------------------------------------
+post_read_iterate/get_read_iterate/cookie_read_iterate/iterate
+----------------------------------------------------------------
 
 Prototype
         ::
@@ -378,6 +385,7 @@ Prototype
                 post_read_iterate(STRING)
                 get_read_iterate(STRING)
                 cookie_read_iterate(STRING)
+                iterate(enum {post, get, cookie}, STRING)
 
 Parameter
 

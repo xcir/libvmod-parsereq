@@ -126,3 +126,4 @@ const char* vmod_read_cur(struct sess *, enum VMODREQ_TYPE);
 void vmod_read_iterate(struct sess *, const char* , enum VMODREQ_TYPE type);
 
 int vmodreq_headersize(struct sess *, enum VMODREQ_TYPE , const char *);
+enum VMODREQ_TYPE vmod_convtype(const char*);

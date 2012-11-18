@@ -1,0 +1,33 @@
+varnishtest "GET"
+
+server s1 {
+       rxreq
+       txresp
+} -start
+
+varnish v1 -vcl+backend {
+	import parsereq from "${vmod_topbuild}/src/.libs/libvmod_parsereq.so";
+
+	sub vcl_recv {
+		parsereq.init();
+
+	}
+	sub vcl_deliver{
+		set resp.http.a        = parsereq.param(get, "a");
+		set resp.http.b        = parsereq.param(get, "b");
+		set resp.http.c        = parsereq.param(get, "c");
+		set resp.http.d        = parsereq.param(get, "d");
+		set resp.http.none     = parsereq.param(get, "");
+		set resp.http.amulti   = parsereq.param(get, "a[]");
+		set resp.http.raw      = parsereq.body(get);
+	}
+} -start
+
+client c1 {
+	txreq -req GET -url "/?=="
+	rxresp
+
+	expect resp.http.raw  == "=="
+}
+
+client c1 -run
