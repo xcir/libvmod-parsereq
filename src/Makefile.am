@@ -8,7 +8,8 @@ libvmod_parsereq_la_LDFLAGS = -module -export-dynamic -avoid-version
 libvmod_parsereq_la_SOURCES = \
 	vcc_if.c \
 	vcc_if.h \
-	vmod_parsereq.c
+	vmod_parsereq.c \
+	vmod_parsereq_core.c
 
 vcc_if.c vcc_if.h: $(VARNISHSRC)/lib/libvmod_std/vmod.py $(top_srcdir)/src/vmod_parsereq.vcc
 	@PYTHON@ $(VARNISHSRC)/lib/libvmod_std/vmod.py $(top_srcdir)/src/vmod_parsereq.vcc
