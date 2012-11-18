@@ -27,15 +27,6 @@ Function STRING get_header(STRING)
 Function STRING cookie_header(STRING)
 
 
-
-#########################################################
-# -> size
-Function INT post_size(STRING)
-Function INT get_size(STRING)
-Function INT cookie_size(STRING)
-
-
-
 #########################################################
 # -> body
 Function STRING post_body()
@@ -50,31 +41,35 @@ Function STRING get_read_keylist()
 Function STRING cookie_read_keylist()
 
 
-
-#########################################################
-# -> next_offset
-Function VOID post_read_next()
-Function VOID get_read_next()
-Function VOID cookie_read_next()
-
-
-#########################################################
-# -> current_key
-Function STRING post_read_cur()
-Function STRING get_read_cur()
-Function STRING cookie_read_cur()
-
-
-#########################################################
-# -> iterate
-Function VOID post_read_iterate(STRING)
-Function VOID get_read_iterate(STRING)
-Function VOID cookie_read_iterate(STRING)
-
-
 #########################################################
 # -> reset_offset
 Function VOID post_seek_reset()
 Function VOID get_seek_reset()
 Function VOID cookie_seek_reset()
 
+
+#########################################################
+# -> size
+#Function INT post_size(STRING)
+#Function INT get_size(STRING)
+#Function INT cookie_size(STRING)
+
+#########################################################
+# -> next_offset
+#Function VOID post_read_next()
+#Function VOID get_read_next()
+#Function VOID cookie_read_next()
+
+
+#########################################################
+# -> current_key
+#Function STRING post_read_cur()
+#Function STRING get_read_cur()
+#Function STRING cookie_read_cur()
+
+
+#########################################################
+# -> iterate
+#Function VOID post_read_iterate(STRING)
+#Function VOID get_read_iterate(STRING)
+#Function VOID cookie_read_iterate(STRING)

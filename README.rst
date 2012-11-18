@@ -243,15 +243,12 @@ Example
                 n4: name1
 
 
-post_size/get_size/cookie_size/size
+size
 ------------------------------------------------
 
 Prototype
         ::
 
-                post_size(STRING key)
-                get_size(STRING key)
-                cookie_size(STRING key)
                 size(enum {post, get, cookie}, STRING key)
 
 Parameter
@@ -275,10 +272,10 @@ Example
                 
                 //vcl
                 vcl_deliver{
-                  set resp.http.n1 = parsereq.get_size("name1");
-                  set resp.http.n2 = parsereq.get_size("name2");
+                  set resp.http.n1 = parsereq.size(get, "name1");
+                  set resp.http.n2 = parsereq.size(get, "name2");
                   //nothing
-                  set resp.http.na = parsereq.get_size("name99");
+                  set resp.http.na = parsereq.size(get, "name99");
                 }
                 
                 //return
@@ -286,15 +283,12 @@ Example
                 n2: 3
                 na: 0
 
-post_read_cur/get_read_cur/cookie_read_cur/current_key
+current_key
 -----------------------------------------------------------
 
 Prototype
         ::
 
-                post_read_cur()
-                get_read_cur()
-                cookie_read_cur()
                 current_key(enum {post, get, cookie})
 
 Parameter
@@ -314,13 +308,13 @@ Example
                 
                 //vcl
                 vcl_deliver{
-                  set resp.http.t1 = ">>" + parsereq.get_read_cur();
-                  parsereq.get_read_next();
-                  set resp.http.t2 = ">>" + parsereq.get_read_cur();
-                  parsereq.get_read_next();
-                  set resp.http.t3 = ">>" + parsereq.get_read_cur();
-                  parsereq.get_read_next();
-                  set resp.http.t4 = ">>" + parsereq.get_read_cur();
+                  set resp.http.t1 = ">>" + parsereq.current_key(get);
+                  parsereq.next_offset(get);
+                  set resp.http.t2 = ">>" + parsereq.current_key(get);
+                  parsereq.next_offset(get);
+                  set resp.http.t3 = ">>" + parsereq.current_key(get);
+                  parsereq.next_offset(get);
+                  set resp.http.t4 = ">>" + parsereq.current_key(get);
                 }
                 
                 //return
@@ -331,15 +325,12 @@ Example
                 
 
 
-post_read_next/get_read_next/cookie_read_next/next_offset
+next_offset
 -------------------------------------------------------------
 
 Prototype
         ::
 
-                post_read_next()
-                get_read_next()
-                cookie_read_next()
                 next_offset(enum {post, get, cookie})
 
 Parameter
@@ -361,13 +352,13 @@ Example
                 
                 //vcl
                 vcl_deliver{
-                  set resp.http.t1 = ">>" + parsereq.get_read_cur();
-                  parsereq.get_read_next();
-                  set resp.http.t2 = ">>" + parsereq.get_read_cur();
-                  parsereq.get_read_next();
-                  set resp.http.t3 = ">>" + parsereq.get_read_cur();
-                  parsereq.get_read_next();
-                  set resp.http.t4 = ">>" + parsereq.get_read_cur();
+                  set resp.http.t1 = ">>" + parsereq.current_key(get);
+                  parsereq.next_offset(get);
+                  set resp.http.t2 = ">>" + parsereq.current_key(get);
+                  parsereq.next_offset(get);
+                  set resp.http.t3 = ">>" + parsereq.current_key(get);
+                  parsereq.next_offset(get);
+                  set resp.http.t4 = ">>" + parsereq.current_key(get);
                 }
                 
                 //return
@@ -376,15 +367,12 @@ Example
                 t3: >>name1
                 t4: >>name1
 
-post_read_iterate/get_read_iterate/cookie_read_iterate/iterate
+iterate
 ----------------------------------------------------------------
 
 Prototype
         ::
 
-                post_read_iterate(STRING)
-                get_read_iterate(STRING)
-                cookie_read_iterate(STRING)
                 iterate(enum {post, get, cookie}, STRING)
 
 Parameter
@@ -406,9 +394,9 @@ Example
                 
                 //vcl
                 sub iterate {
-                  parsereq.get_read_next();
-                  set req.http.hoge = req.http.hoge + parsereq.get_read_cur() + ":";
-                  set req.http.hoge = req.http.hoge + parsereq.get_header(parsereq.get_read_cur()) + " ";
+                  parsereq.next_offset(get);
+                  set req.http.hoge = req.http.hoge + parsereq.current_key(get) + ":";
+                  set req.http.hoge = req.http.hoge + parsereq.get_header(parsereq.current_key(get)) + " ";
                 }
                 sub vcl_recv {
                   parsereq.init();
@@ -417,7 +405,7 @@ Example
                   }
                   set req.http.hoge= "";
                   C{
-                    Vmod_Func_parsereq.get_read_iterate(sp, (const char*)VGC_function_iterate);
+                    Vmod_Func_parsereq.iterate(sp, "get", (const char*)VGC_function_iterate);
                   }C
 
                 }
