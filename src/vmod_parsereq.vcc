@@ -7,14 +7,14 @@ Function VOID   debuginit()
 
 #########################################################
 # new
-Function STRING param(ENUM {post, get, cookie}, STRING)
-Function INT size(ENUM {post, get, cookie}, STRING)
+Function STRING param(ENUM {post, get, cookie, req}, STRING)
+Function INT size(ENUM {post, get, cookie, req}, STRING)
 Function STRING body(ENUM {post, get, cookie})
-Function STRING next_key(ENUM {post, get, cookie})
-Function VOID next_offset(ENUM {post, get, cookie})
-Function STRING current_key(ENUM {post, get, cookie})
-Function VOID iterate(ENUM {post, get, cookie}, STRING)
-Function VOID reset_offset(ENUM {post, get, cookie})
+Function STRING next_key(ENUM {post, get, cookie, req})
+Function VOID next_offset(ENUM {post, get, cookie, req})
+Function STRING current_key(ENUM {post, get, cookie, req})
+Function VOID iterate(ENUM {post, get, cookie, req}, STRING)
+Function VOID reset_offset(ENUM {post, get, cookie, req})
 
 
 #########################################################

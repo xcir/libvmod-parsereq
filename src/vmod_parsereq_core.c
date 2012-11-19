@@ -40,6 +40,9 @@ static void vmodreq_free(struct vmod_request *c) {
 	FREE_OBJ(c->post);
 	FREE_OBJ(c->get);
 	FREE_OBJ(c->cookie);
+
+
+
 	FREE_OBJ(c);
 }
 
@@ -122,6 +125,8 @@ struct vmod_request *vmodreq_init(struct sess *sp){
 	AN(c->get);
 	ALLOC_OBJ(c->cookie,VMOD_HEADERS_MAGIC);
 	AN(c->cookie);
+	
+
 	//assign pointer
 	snprintf(buf,64,"%ld",c);
 	VRT_SetHdr(sp, HDR_REQ, POST_REQ_HDR, buf,vrt_magic_string_end);
@@ -281,12 +286,49 @@ const char* vmod_read_cur(struct sess *sp, enum VMODREQ_TYPE type){
 	hs = vmodreq_getheaders(c,type);
 	return hs->seek;
 }
+const char* vmod_readheader_cur(struct sess *sp, enum gethdr_e where){
+	if(!vmodreq_get_raw(sp)){
+		VRT_panic(sp,"please write \"parsereq.init();\" to 1st line in vcl_recv.",vrt_magic_string_end);
+	}
+/*
+	struct vmod_request *c = vmodreq_get(sp);
+	switch (where) {
+	case HDR_REQ:
+		c->seek_idx_req
+		break;
+	case HDR_BEREQ:
+		hp = sp->wrk->bereq;
+		break;
+	case HDR_BERESP:
+		hp = sp->wrk->beresp;
+		break;
+	case HDR_RESP:
+		hp = sp->wrk->resp;
+		break;
+	case HDR_OBJ:
+		CHECK_OBJ_NOTNULL(sp->obj, OBJECT_MAGIC);
+		hp = sp->obj->http;
+		break;
+	default:
+		INCOMPL();
+	}
+*/
 
+}
 ////////////////////////////////////////////////////
 //反復処理を行う
 void vmod_read_iterate(struct sess *sp, const char* p, enum VMODREQ_TYPE type){
 	vmodreq_seek_reset(sp,type);
 	int max = vmodreq_hdr_count(sp, type);
+	vcl_userdef_func func = (vcl_userdef_func)p;
+	
+	for(int i=0; i<max; i++){
+		func(sp);
+	}
+}
+void header_iterate(struct sess *sp, const char* p, enum gethdr_e where){
+	header_idx_reset(sp, where);
+	int max = count_header(sp, where);
 	vcl_userdef_func func = (vcl_userdef_func)p;
 	
 	for(int i=0; i<max; i++){
@@ -478,8 +520,163 @@ enum VMODREQ_TYPE vmod_convtype(const char*type){
 		return COOKIE;
 }
 
+//////////////////////////////////////////
+//文字列から列挙型gethdr_eに変換
+enum gethdr_e vmod_convhdrtype(const char*type, unsigned* ret){
+	*ret = (1==1);
+	if (!strcmp(type, "req"))
+		return HDR_REQ;
+	if (!strcmp(type, "beresp"))
+		return HDR_BERESP;
+	if (!strcmp(type, "obj"))
+		return HDR_OBJ;
+	if (!strcmp(type, "bereq"))
+		return HDR_BEREQ;
+	if (!strcmp(type, "resp"))
+		return HDR_RESP;
+	*ret = (1==0);
+	//return NULL;
+}
 
+//////////////////////////////////////////
+//GetHdr用の文字列を作る
+void gen_hdrtxt(const char *header,char *p, int size){
+	int len = strlen(header);
+	if(size < len + 3 && len > 252){
+		*p = NULL;
+		return;
+	}
+	p[0] = (unsigned char)len +1;
+	++p;
+	memcpy(p, header, len);
+	p += len;
+	p[0] = ':';
+	p[1] = 0;
+}
+//////////////////////////////////////////
+//vrt.cから移植
+struct http *
+vrt_selecthttp(const struct sess *sp, enum gethdr_e where)
+{
+	struct http *hp;
 
+	CHECK_OBJ_NOTNULL(sp, SESS_MAGIC);
+	switch (where) {
+	case HDR_REQ:
+		hp = sp->http;
+		break;
+	case HDR_BEREQ:
+		hp = sp->wrk->bereq;
+		break;
+	case HDR_BERESP:
+		hp = sp->wrk->beresp;
+		break;
+	case HDR_RESP:
+		hp = sp->wrk->resp;
+		break;
+	case HDR_OBJ:
+		CHECK_OBJ_NOTNULL(sp->obj, OBJECT_MAGIC);
+		hp = sp->obj->http;
+		break;
+	default:
+		INCOMPL();
+	}
+	CHECK_OBJ_NOTNULL(hp, HTTP_MAGIC);
+	return (hp);
+}
+//////////////////////////////////////////
+//ヘッダの個数を取得
+int count_header(const struct sess *sp, enum gethdr_e where)
+{
+	struct http *hp;
+	hp = vrt_selecthttp(sp, where);
+	return hp->nhd - HTTP_HDR_FIRST -1;
+}
+
+const char *get_header_key(const struct sess *sp, enum gethdr_e where, int index){
+	if(!vmodreq_get_raw(sp)){
+		VRT_panic(sp,"please write \"parsereq.init();\" to 1st line in vcl_recv.",vrt_magic_string_end);
+	}
+	struct vmod_request *c = vmodreq_get(sp);
+
+	if(index == 0) return NULL;
+	int len = count_header(sp, where);
+	if(len < index) return NULL;
+	index += HTTP_HDR_FIRST -1;
+
+	struct http *hp;
+	hp = vrt_selecthttp(sp, where);
+	const char *p = hp->hd[index].b;
+	char * p2 = strchr(p,':');
+	unsigned l = p2 - p;
+	if(l > 255) return NULL;
+	memcpy(c->seek_tmp, p, l);
+	c->seek_tmp[l] = 0;
+	return c->seek_tmp;
+}
+const char *header_next(const struct sess *sp, enum gethdr_e where){
+	if(!vmodreq_get_raw(sp)){
+		VRT_panic(sp,"please write \"parsereq.init();\" to 1st line in vcl_recv.",vrt_magic_string_end);
+	}
+	int cnt = count_header(sp, where);
+	int idx = 0;
+	struct vmod_request *c = vmodreq_get(sp);
+	switch (where) {
+		case HDR_REQ:
+//		syslog(6,"-->%d %d",c->seek_idx_req,cnt);
+			if(c->seek_idx_req >= cnt) return NULL;
+			++c->seek_idx_req;
+			idx = c->seek_idx_req;
+//		syslog(6,"--<<%d %d",c->seek_idx_req,cnt);
+			break;
+		case HDR_BEREQ:
+			if(c->seek_idx_bereq >= cnt) return NULL;
+			++c->seek_idx_bereq;
+			idx = c->seek_idx_bereq;
+			break;
+		case HDR_BERESP:
+			if(c->seek_idx_beresp >= cnt) return NULL;
+			++c->seek_idx_beresp;
+			idx = c->seek_idx_beresp;
+			break;
+		case HDR_RESP:
+			if(c->seek_idx_resp >= cnt) return NULL;
+			++c->seek_idx_resp;
+			idx = c->seek_idx_resp;
+			break;
+		case HDR_OBJ:
+			if(c->seek_idx_obj >= cnt) return NULL;
+			++c->seek_idx_obj;
+			idx = c->seek_idx_obj;
+			break;
+	}
+//	syslog(6,"xxx:%d %s",sp->xid,get_header_key(sp, where, idx));
+	return get_header_key(sp, where, idx);
+
+}
+void header_idx_reset(const struct sess *sp, enum gethdr_e where){
+	if(!vmodreq_get_raw(sp)){
+		VRT_panic(sp,"please write \"parsereq.init();\" to 1st line in vcl_recv.",vrt_magic_string_end);
+	}
+	struct vmod_request *c = vmodreq_get(sp);
+	switch (where) {
+		case HDR_REQ:
+			c->seek_idx_req = 0;
+			break;
+		case HDR_BEREQ:
+			c->seek_idx_bereq = 0;
+			break;
+		case HDR_BERESP:
+			c->seek_idx_beresp = 0;
+			break;
+		case HDR_RESP:
+			c->seek_idx_resp = 0;
+			break;
+		case HDR_OBJ:
+			c->seek_idx_obj = 0;
+			break;
+	}
+}
 //////////////////////////////////////////
 //3.0.3からインタフェースが変更されたHTC_Readの対策
 //HTC_Read

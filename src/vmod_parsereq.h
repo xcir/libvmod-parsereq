@@ -57,8 +57,10 @@ struct vmod_headers {
 	unsigned			magic;
 #define VMOD_HEADERS_MAGIC 0x8d4d29ac
 	char *seek;
+//	int count;//‚Ü‚¾’l“ü‚ê‚Ä‚È‚¢‚Ì‚Å‚ ‚Æ‚Å“ü‚ê‚é
 	VTAILQ_HEAD(, hdr) headers;
 };
+
 
 struct vmod_request {
 	unsigned			magic;
@@ -66,6 +68,14 @@ struct vmod_request {
 	struct vmod_headers* post;
 	struct vmod_headers* get;
 	struct vmod_headers* cookie;
+	
+	int seek_idx_req;
+	int seek_idx_bereq;
+	int seek_idx_beresp;
+	int seek_idx_resp;
+	int seek_idx_obj;
+
+	char seek_tmp[256];
 	
 	int  parse_ret;
 	
@@ -123,7 +133,16 @@ void debugmsg(struct sess *,const char*,...);
 typedef int (*vcl_userdef_func)(struct sess *sp);
 
 const char* vmod_read_cur(struct sess *, enum VMODREQ_TYPE);
+const char* vmod_readheader_cur(struct sess *, enum gethdr_e);
 void vmod_read_iterate(struct sess *, const char* , enum VMODREQ_TYPE type);
 
 int vmodreq_headersize(struct sess *, enum VMODREQ_TYPE , const char *);
 enum VMODREQ_TYPE vmod_convtype(const char*);
+enum gethdr_e vmod_convhdrtype(const char*, unsigned*);
+void gen_hdrtxt(const char *, char *, int);
+int count_header(const struct sess *, enum gethdr_e );
+struct http * vrt_selecthttp(const struct sess *, enum gethdr_e);
+const char*get_header_key(const struct sess *, enum gethdr_e , int );
+const char *header_next(const struct sess *, enum gethdr_e );
+void header_idx_reset(const struct sess *, enum gethdr_e );
+void header_iterate(struct sess *, const char* , enum gethdr_e );
