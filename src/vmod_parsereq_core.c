@@ -329,6 +329,7 @@ void vmod_read_iterate(struct sess *sp, const char* p, enum VMODREQ_TYPE type){
 void header_iterate(struct sess *sp, const char* p, enum gethdr_e where){
 	header_idx_reset(sp, where);
 	int max = count_header(sp, where);
+//	syslog(6,"count:%d",max);
 	vcl_userdef_func func = (vcl_userdef_func)p;
 	
 	for(int i=0; i<max; i++){
@@ -590,7 +591,7 @@ int count_header(const struct sess *sp, enum gethdr_e where)
 {
 	struct http *hp;
 	hp = vrt_selecthttp(sp, where);
-	return hp->nhd - HTTP_HDR_FIRST -1;
+	return hp->nhd - HTTP_HDR_FIRST;
 }
 
 const char *get_header_key(const struct sess *sp, enum gethdr_e where, int index){
@@ -650,7 +651,8 @@ const char *header_next(const struct sess *sp, enum gethdr_e where){
 			idx = c->seek_idx_obj;
 			break;
 	}
-//	syslog(6,"xxx:%d %s",sp->xid,get_header_key(sp, where, idx));
+//	syslog(6,"xxx:%d %d %s",sp->xid,idx,get_header_key(sp, where, idx));
+//	syslog(6,"xxx:%d %d extra %s",sp->xid,idx,get_header_key(sp, where, idx +1));
 	return get_header_key(sp, where, idx);
 
 }
