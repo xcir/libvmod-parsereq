@@ -42,7 +42,7 @@ static unsigned           is_debug           = 0;
 
 //////////////////////////////////////////
 //for internal head
-enum VMODREQ_TYPE { POST, GET, COOKIE };
+enum VMODREQ_TYPE { POST, GET, COOKIE, REQ};
 
 struct hdr {
 	char *key;
@@ -56,10 +56,12 @@ struct hdr {
 struct vmod_headers {
 	unsigned			magic;
 #define VMOD_HEADERS_MAGIC 0x8d4d29ac
+	unsigned value_enabled;
 	char *seek;
-//	int count;//‚Ü‚¾’l“ü‚ê‚Ä‚È‚¢‚Ì‚Å‚ ‚Æ‚Å“ü‚ê‚é
+//	int count;//ã¾ã å€¤å…¥ã‚Œã¦ãªã„ã®ã§ã‚ã¨ã§å…¥ã‚Œã‚‹
 	VTAILQ_HEAD(, hdr) headers;
 };
+
 
 
 struct vmod_request {
@@ -69,12 +71,9 @@ struct vmod_request {
 	struct vmod_headers* get;
 	struct vmod_headers* cookie;
 	
-	int seek_idx_req;
-	int seek_idx_bereq;
-	int seek_idx_beresp;
-	int seek_idx_resp;
-	int seek_idx_obj;
+	struct vmod_headers* hdr_req;
 
+	unsigned init_req;
 	char seek_tmp[256];
 	
 	int  parse_ret;
@@ -102,6 +101,9 @@ ssize_t vmod_HTC_Read(struct worker *, struct http_conn *, void *, size_t );
 static int vmod_Hook_unset_deliver(struct sess *);
 static int vmod_Hook_unset_bereq(struct sess *);
 
+static void vmodreq_headers_free(struct vmod_headers *);
+
+
 const char *vmodreq_header(struct sess *, enum VMODREQ_TYPE , const char *);
 void vmodreq_sethead(struct vmod_request *, enum VMODREQ_TYPE ,const char *, const char *,int);
 struct vmod_headers *vmodreq_getheaders(struct vmod_request *, enum VMODREQ_TYPE );
@@ -118,6 +120,7 @@ int vmodreq_get_parse(struct sess *);
 int vmodreq_cookie_parse(struct sess *);
 int vmodreq_reqbody(struct sess *, char**,int*);
 int vmodreq_post_parse(struct sess *);
+void init_header(const struct sess *, enum gethdr_e);
 
 const char *vmodreq_getheader(struct vmod_request *, enum VMODREQ_TYPE , const char *);
 int vmodreq_getheadersize(struct vmod_request *, enum VMODREQ_TYPE , const char *);
@@ -143,6 +146,6 @@ void gen_hdrtxt(const char *, char *, int);
 int count_header(const struct sess *, enum gethdr_e );
 struct http * vrt_selecthttp(const struct sess *, enum gethdr_e);
 const char*get_header_key(const struct sess *, enum gethdr_e , int );
-const char *header_next(const struct sess *, enum gethdr_e );
-void header_idx_reset(const struct sess *, enum gethdr_e );
+//const char *header_next(const struct sess *, enum gethdr_e );
+//void header_idx_reset(const struct sess *, enum gethdr_e );
 void header_iterate(struct sess *, const char* , enum gethdr_e );

@@ -7,8 +7,8 @@ Varnish parse data module
 -------------------------
 
 :Author: Syohei Tanaka(@xcir)
-:Date: 2012-11-18
-:Version: 0.9-iterate-2
+:Date: 2012-11-23
+:Version: 0.10
 :Manual section: 3
 
 SYNOPSIS
@@ -460,6 +460,8 @@ Tested Version
 HISTORY
 ===========
 
+
+Version 0.10: Add: param, size, body, next_key, next_offset, current_key, iterate, reset_offset
 
 Version 0.9: Bug fix: always segfault on x86. And sometimes segfault on x86_64. [issue #5 Thanks comotion]
 

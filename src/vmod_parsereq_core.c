@@ -11,36 +11,35 @@
 
 //////////////////////////////////////////
 //パースした内容を開放する
+static void vmodreq_headers_free(struct vmod_headers *obj){
+	struct hdr *h, *h2;
+	VTAILQ_FOREACH_SAFE(h, &obj->headers, list, h2) {
+		VTAILQ_REMOVE(&obj->headers, h, list);
+		if(h->value)
+			free(h->value);
+		
+		free(h->key);
+		free(h);
+	}
+	FREE_OBJ(obj);
+
+}
+
 static void vmodreq_free(struct vmod_request *c) {
 	struct hdr *h, *h2;
 	CHECK_OBJ_NOTNULL(c, VMOD_REQUEST_MAGIC);
-
-	VTAILQ_FOREACH_SAFE(h, &c->post->headers, list, h2) {
-		VTAILQ_REMOVE(&c->post->headers, h, list);
-		free(h->key);
-		free(h->value);
-		free(h);
-	}
-	VTAILQ_FOREACH_SAFE(h, &c->cookie->headers, list, h2) {
-		VTAILQ_REMOVE(&c->cookie->headers, h, list);
-		free(h->key);
-		free(h->value);
-		free(h);
-	}
-	VTAILQ_FOREACH_SAFE(h, &c->get->headers, list, h2) {
-		VTAILQ_REMOVE(&c->get->headers, h, list);
-		free(h->key);
-		free(h->value);
-		free(h);
-	}
+	
 	free(c->raw_post);
 	free(c->raw_get);
 	free(c->raw_cookie);
 	
-	FREE_OBJ(c->post);
-	FREE_OBJ(c->get);
-	FREE_OBJ(c->cookie);
-
+	
+	vmodreq_headers_free(c->post);
+	vmodreq_headers_free(c->cookie);
+	vmodreq_headers_free(c->get);
+	
+	
+	vmodreq_headers_free(c->hdr_req);
 
 
 	FREE_OBJ(c);
@@ -119,13 +118,22 @@ struct vmod_request *vmodreq_init(struct sess *sp){
 	//allocate memory
 	ALLOC_OBJ(c, VMOD_REQUEST_MAGIC);
 	AN(c);
+	
 	ALLOC_OBJ(c->post,VMOD_HEADERS_MAGIC);
 	AN(c->post);
+	c->post->value_enabled = (1==1);
+	
 	ALLOC_OBJ(c->get,VMOD_HEADERS_MAGIC);
 	AN(c->get);
+	c->get->value_enabled = (1==1);
+	
 	ALLOC_OBJ(c->cookie,VMOD_HEADERS_MAGIC);
 	AN(c->cookie);
+	c->cookie->value_enabled = (1==1);
 	
+	
+	ALLOC_OBJ(c->hdr_req,VMOD_HEADERS_MAGIC);
+	AN(c->hdr_req);
 
 	//assign pointer
 	snprintf(buf,64,"%ld",c);
@@ -199,6 +207,9 @@ struct vmod_headers *vmodreq_getheaders(struct vmod_request *c, enum VMODREQ_TYP
 		case COOKIE:
 			r = c->cookie;
 			break;
+		case REQ:
+			r = c->hdr_req;
+			break;
 	}
 	return r;
 }
@@ -269,7 +280,13 @@ void vmodreq_seek_reset(struct sess *sp, enum VMODREQ_TYPE type)
 	}
 	struct vmod_request *c = vmodreq_get(sp);
 	struct vmod_headers *hs= vmodreq_getheaders(c,type);
-	hs->seek = NULL;
+	switch(type){
+	case REQ:
+		init_header(sp, HDR_REQ);
+		break;
+	default:
+		hs->seek = NULL;
+	}
 }
 
 
@@ -326,17 +343,6 @@ void vmod_read_iterate(struct sess *sp, const char* p, enum VMODREQ_TYPE type){
 		func(sp);
 	}
 }
-void header_iterate(struct sess *sp, const char* p, enum gethdr_e where){
-	header_idx_reset(sp, where);
-	int max = count_header(sp, where);
-//	syslog(6,"count:%d",max);
-	vcl_userdef_func func = (vcl_userdef_func)p;
-	
-	for(int i=0; i<max; i++){
-		func(sp);
-	}
-}
-
 
 ////////////////////////////////////////////////////
 //各ヘッダの個数を取得
@@ -351,12 +357,11 @@ int vmodreq_hdr_count(struct sess *sp, enum VMODREQ_TYPE type)
 	struct vmod_headers *hs;
 	hs = vmodreq_getheaders(c,type);
 	char * seh = hs->seek;
-
 	int i = 0;
 	VTAILQ_FOREACH(h, &hs->headers, list) {
 		++i;
 	}
-	
+
 	return i;
 }
 
@@ -371,6 +376,13 @@ const char *vmodreq_seek(struct sess *sp, enum VMODREQ_TYPE type)
 	struct vmod_request *c = vmodreq_get(sp);
 	struct hdr *h;
 	struct hdr *r = NULL;
+	
+	switch(type){
+	case REQ:
+		if(!c->init_req)
+			init_header(sp, HDR_REQ);
+		break;
+	}
 
 	struct vmod_headers *hs;
 	hs = vmodreq_getheaders(c,type);
@@ -418,7 +430,6 @@ struct hdr *vmodreq_getrawheader(struct vmod_request *c, enum VMODREQ_TYPE type,
 			break;
 		}
 	}
-//	syslog(6,"ret %s = %s",header,r);
 	return r;
 }
 
@@ -477,10 +488,8 @@ const char *vmodreq_header(struct sess *sp, enum VMODREQ_TYPE type, const char *
 //フック時に呼び出される関数
 //hook function(miss,pass,pipe)
 static int vmod_Hook_unset_bereq(struct sess *sp){
-//	syslog(6,"unset %s",POST_REQ_HDR);
 	VRT_SetHdr(sp, HDR_BEREQ, POST_REQ_HDR, 0);
 	
-//	syslog(6,"unsetsd %s",VRT_GetHdr(sp, HDR_BEREQ, POST_REQ_HDR));
 	switch(sp->step){
 		case STP_MISS:
 			return(vmod_Hook_miss(sp));
@@ -519,6 +528,8 @@ enum VMODREQ_TYPE vmod_convtype(const char*type){
 		return GET;
 	if (!strcmp(type, "cookie"))
 		return COOKIE;
+	if (!strcmp(type, "req"))
+		return REQ;
 }
 
 //////////////////////////////////////////
@@ -615,69 +626,39 @@ const char *get_header_key(const struct sess *sp, enum gethdr_e where, int index
 	c->seek_tmp[l] = 0;
 	return c->seek_tmp;
 }
-const char *header_next(const struct sess *sp, enum gethdr_e where){
+void init_header(const struct sess *sp, enum gethdr_e where){
 	if(!vmodreq_get_raw(sp)){
 		VRT_panic(sp,"please write \"parsereq.init();\" to 1st line in vcl_recv.",vrt_magic_string_end);
 	}
-	int cnt = count_header(sp, where);
-	int idx = 0;
 	struct vmod_request *c = vmodreq_get(sp);
+	struct vmod_headers *h;
+	int *en;
 	switch (where) {
 		case HDR_REQ:
-//		syslog(6,"-->%d %d",c->seek_idx_req,cnt);
-			if(c->seek_idx_req >= cnt) return NULL;
-			++c->seek_idx_req;
-			idx = c->seek_idx_req;
-//		syslog(6,"--<<%d %d",c->seek_idx_req,cnt);
-			break;
-		case HDR_BEREQ:
-			if(c->seek_idx_bereq >= cnt) return NULL;
-			++c->seek_idx_bereq;
-			idx = c->seek_idx_bereq;
-			break;
-		case HDR_BERESP:
-			if(c->seek_idx_beresp >= cnt) return NULL;
-			++c->seek_idx_beresp;
-			idx = c->seek_idx_beresp;
-			break;
-		case HDR_RESP:
-			if(c->seek_idx_resp >= cnt) return NULL;
-			++c->seek_idx_resp;
-			idx = c->seek_idx_resp;
-			break;
-		case HDR_OBJ:
-			if(c->seek_idx_obj >= cnt) return NULL;
-			++c->seek_idx_obj;
-			idx = c->seek_idx_obj;
+			h = c->hdr_req;
+			en = &c->init_req;
 			break;
 	}
-//	syslog(6,"xxx:%d %d %s",sp->xid,idx,get_header_key(sp, where, idx));
-//	syslog(6,"xxx:%d %d extra %s",sp->xid,idx,get_header_key(sp, where, idx +1));
-	return get_header_key(sp, where, idx);
+	if(*en){
+		//初期化必要
+		vmodreq_headers_free(h);
+		ALLOC_OBJ(h,VMOD_HEADERS_MAGIC);
+		AN(h);
+	}
+	int max = count_header(sp,where);
+	char *tmpkey;
+	struct hdr *vh;
+	
+	for(int i=1; i<=max; i++){
+		tmpkey = get_header_key(sp, where, i);
+		vh = calloc(1, sizeof(struct hdr));
+		AN(vh);
+		vh->key = strndup(tmpkey, strlen(tmpkey));
+		AN(vh->key);
+		VTAILQ_INSERT_HEAD(&h->headers, vh, list);
+	}
+	*en = (1==1);
 
-}
-void header_idx_reset(const struct sess *sp, enum gethdr_e where){
-	if(!vmodreq_get_raw(sp)){
-		VRT_panic(sp,"please write \"parsereq.init();\" to 1st line in vcl_recv.",vrt_magic_string_end);
-	}
-	struct vmod_request *c = vmodreq_get(sp);
-	switch (where) {
-		case HDR_REQ:
-			c->seek_idx_req = 0;
-			break;
-		case HDR_BEREQ:
-			c->seek_idx_bereq = 0;
-			break;
-		case HDR_BERESP:
-			c->seek_idx_beresp = 0;
-			break;
-		case HDR_RESP:
-			c->seek_idx_resp = 0;
-			break;
-		case HDR_OBJ:
-			c->seek_idx_obj = 0;
-			break;
-	}
 }
 //////////////////////////////////////////
 //3.0.3からインタフェースが変更されたHTC_Readの対策
@@ -782,7 +763,6 @@ int decodeForm_multipart(struct sess *sp,char *body){
 		}
 		tmp                   = name_line_end[idx];
 		name_line_end[idx]    = 0;
-//		syslog(6,"head %s",sc_name);
 
 		///////////////////////////////////////////////
 		//filecheck
@@ -803,7 +783,6 @@ int decodeForm_multipart(struct sess *sp,char *body){
 		p_body_end[0] = 0;
 		//bodyをURLエンコードする
 
-//		syslog(6,"length %d %d",strlen(start_body),p_body_end-start_body);
 	
 		vmodreq_sethead(c,POST,sc_name,start_body,p_body_end - start_body);		
 		
@@ -870,31 +849,21 @@ int vmodreq_decode_urlencode(struct sess *sp,char *body,enum VMODREQ_TYPE type,c
 		
 
 		tmphead = tmpbody;
-//		syslog(6,"----------------NOWPNTB %s ;%s ;%s ;%s",tmphead,tmpbody,sc_eq,sc_amp);
 		
 
 		//////////////////////////////
 		//build body
 		tmpbody   = sc_eq + 1;
-//		syslog(6,"size %s %s %d %d",tmphead,tmpbody,strlen(tmpbody),sc_amp - tmpbody);
-//		tmp2=sc_amp[0];
-//		sc_amp[0] = 0;// & -> null
-		
-//		syslog(6,"XXXsize %d %d",strlen(tmpbody),sc_amp - tmpbody);
 
 		//////////////////////////////
 		//set header
 		
-//		syslog(6,"store-->head %s %s",tmphead,tmpbody);
-//		vmodreq_sethead(c,type,tmphead,tmpbody,strlen(tmpbody));
 		vmodreq_sethead(c,type,tmphead,tmpbody,sc_amp - tmpbody);
 		
 		sc_eq[0]  = tmp;//thead
-//		sc_amp[0] = tmp2;//tbody
 		tmpbody   = sc_amp + 1;
 		while(1){
 			//for COOKIE (Sometimes it contains spaces at key prefix.)
-//			syslog(6,"[%s]",tmpbody);
 			if(tmpbody[0]==0) break;
 			if(tmpbody[0] ==' '){
 				++tmpbody;
