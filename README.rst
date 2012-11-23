@@ -8,7 +8,7 @@ Varnish parse data module
 
 :Author: Syohei Tanaka(@xcir)
 :Date: 2012-11-23
-:Version: 0.10
+:Version: 0.11
 :Manual section: 3
 
 SYNOPSIS
@@ -18,6 +18,14 @@ import parsereq;
 
 DESCRIPTION
 ==============
+
+DATA TYPES
+==============
+
+* POST
+* GET
+* COOKIE
+* REQ(req.http.*)
 
 ATTENTION
 ============
@@ -105,7 +113,7 @@ Prototype
                 post_header(STRING key)
                 get_header(STRING key)
                 cookie_header(STRING key)
-                param(enum {post, get, cookie}, STRING key)
+                param(enum {post, get, cookie, req}, STRING key)
 Parameter
         ::
 
@@ -172,7 +180,7 @@ Prototype
                 post_read_keylist()
                 get_read_keylist()
                 cookie_read_keylist()
-                next_key(enum {post, get, cookie})
+                next_key(enum {post, get, cookie, req})
 
 Parameter
 
@@ -209,7 +217,7 @@ Prototype
                 post_seek_reset()
                 get_seek_reset()
                 cookie_seek_reset()
-                reset_offset(enum {post, get, cookie})
+                reset_offset(enum {post, get, cookie, req})
 
 Parameter
 
@@ -249,7 +257,7 @@ size
 Prototype
         ::
 
-                size(enum {post, get, cookie}, STRING key)
+                size(enum {post, get, cookie, req}, STRING key)
 
 Parameter
         ::
@@ -289,7 +297,7 @@ current_key
 Prototype
         ::
 
-                current_key(enum {post, get, cookie})
+                current_key(enum {post, get, cookie, req})
 
 Parameter
 
@@ -331,7 +339,7 @@ next_offset
 Prototype
         ::
 
-                next_offset(enum {post, get, cookie})
+                next_offset(enum {post, get, cookie, req})
 
 Parameter
 
@@ -373,7 +381,7 @@ iterate
 Prototype
         ::
 
-                iterate(enum {post, get, cookie}, STRING)
+                iterate(enum {post, get, cookie, req}, STRING)
 
 Parameter
 
@@ -460,6 +468,8 @@ Tested Version
 HISTORY
 ===========
 
+
+Version 0.11: Support REQ data type.(req.http.*)
 
 Version 0.10: Add: param, size, body, next_key, next_offset, current_key, iterate, reset_offset
 

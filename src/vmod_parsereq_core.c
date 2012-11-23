@@ -121,15 +121,15 @@ struct vmod_request *vmodreq_init(struct sess *sp){
 	
 	ALLOC_OBJ(c->post,VMOD_HEADERS_MAGIC);
 	AN(c->post);
-	c->post->value_enabled = (1==1);
+//	c->post->value_enabled = (1==1);
 	
 	ALLOC_OBJ(c->get,VMOD_HEADERS_MAGIC);
 	AN(c->get);
-	c->get->value_enabled = (1==1);
+//	c->get->value_enabled = (1==1);
 	
 	ALLOC_OBJ(c->cookie,VMOD_HEADERS_MAGIC);
 	AN(c->cookie);
-	c->cookie->value_enabled = (1==1);
+//	c->cookie->value_enabled = (1==1);
 	
 	
 	ALLOC_OBJ(c->hdr_req,VMOD_HEADERS_MAGIC);

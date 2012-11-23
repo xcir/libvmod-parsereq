@@ -56,7 +56,7 @@ struct hdr {
 struct vmod_headers {
 	unsigned			magic;
 #define VMOD_HEADERS_MAGIC 0x8d4d29ac
-	unsigned value_enabled;
+//	unsigned value_enabled;
 	char *seek;
 //	int count;//まだ値入れてないのであとで入れる
 	VTAILQ_HEAD(, hdr) headers;
@@ -146,6 +146,4 @@ void gen_hdrtxt(const char *, char *, int);
 int count_header(const struct sess *, enum gethdr_e );
 struct http * vrt_selecthttp(const struct sess *, enum gethdr_e);
 const char*get_header_key(const struct sess *, enum gethdr_e , int );
-//const char *header_next(const struct sess *, enum gethdr_e );
-//void header_idx_reset(const struct sess *, enum gethdr_e );
 void header_iterate(struct sess *, const char* , enum gethdr_e );
