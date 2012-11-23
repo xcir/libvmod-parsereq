@@ -19,8 +19,8 @@ import parsereq;
 DESCRIPTION
 ==============
 
-DATA TYPES
-==============
+SUPPORT DATA TYPES
+===================
 
 * POST
 * GET
