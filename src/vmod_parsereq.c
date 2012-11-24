@@ -62,7 +62,7 @@ void vmod_iterate(struct sess *sp, const char* type, const char* p){
 int vmod_size(struct sess *sp, const char *type, const char *header)
 {
 	unsigned ret = 0;
-	enum gethdr_e where = vmod_convhdrtype(type, &ret);
+	enum gethdr_e where = vmod_convhdrtype(sp,type, &ret);
 	if(ret){
 		//headerの値を作る必要がある
 		char tmp[256];
@@ -82,7 +82,7 @@ int vmod_size(struct sess *sp, const char *type, const char *header)
 //Value取得系関数
 const char *vmod_param(struct sess *sp, const char *type ,const char *header){
 	unsigned ret = 0;
-	enum gethdr_e where = vmod_convhdrtype(type, &ret);
+	enum gethdr_e where = vmod_convhdrtype(sp,type, &ret);
 	if(ret){
 		//headerの値を作る必要がある
 		char tmp[256];
