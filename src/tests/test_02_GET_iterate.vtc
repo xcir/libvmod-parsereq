@@ -9,7 +9,6 @@ varnish v1 -vcl+backend {
 	import parsereq from "${vmod_topbuild}/src/.libs/libvmod_parsereq.so";
 
 	sub iterate {
-		parsereq.next_offset(get);
 		set req.http.hoge = req.http.hoge + parsereq.current_key(get) + ":";
 		set req.http.hoge = req.http.hoge + parsereq.param(get, parsereq.current_key(get)) + " ";
 	}

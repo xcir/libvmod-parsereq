@@ -402,7 +402,6 @@ Example
                 
                 //vcl
                 sub iterate {
-                  parsereq.next_offset(get);
                   set req.http.hoge = req.http.hoge + parsereq.current_key(get) + ":";
                   set req.http.hoge = req.http.hoge + parsereq.get_header(parsereq.current_key(get)) + " ";
                 }

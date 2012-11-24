@@ -9,7 +9,6 @@ varnish v1 -vcl+backend {
 	import parsereq from "${vmod_topbuild}/src/.libs/libvmod_parsereq.so";
 
 	sub iterate {
-		parsereq.next_offset(cookie);
 		set req.http.hoge = req.http.hoge + parsereq.current_key(cookie) + ":";
 		set req.http.hoge = req.http.hoge + parsereq.param(cookie, parsereq.current_key(cookie)) + " ";
 	}

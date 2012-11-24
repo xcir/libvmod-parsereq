@@ -340,6 +340,9 @@ void vmod_read_iterate(struct sess *sp, const char* p, enum VMODREQ_TYPE type){
 	vcl_userdef_func func = (vcl_userdef_func)p;
 	
 	for(int i=0; i<max; i++){
+		vmodreq_seek(sp,type);
+		if(type == REQ && strcmp(vmod_read_cur(sp,type), POST_REQ_HDR_NAME) == 0)
+			continue;
 		func(sp);
 	}
 }
