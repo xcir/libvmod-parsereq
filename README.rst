@@ -461,14 +461,13 @@ parameters and stack size(ulimit -s).
 Tested Version
 ===============
 
-* 3.0.1
-* 3.0.2
-* 3.0.2-streaming
-* 3.0.3
+* 3.0.1(x86_64)
+* 3.0.2(x86_64)
+* 3.0.2-streaming(x86_64)
+* 3.0.3(x86, x86_64)
 
 HISTORY
 ===========
-
 
 Version 0.11: Support REQ data type.(req.http.*) And AUTO data type.
 
