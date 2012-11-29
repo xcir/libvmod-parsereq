@@ -1,0 +1,26 @@
+varnishtest "REQ"
+
+server s1 {
+       rxreq
+       txresp
+} -start
+
+varnish v1 -vcl+backend {
+	import parsereq from "${vmod_topbuild}/src/.libs/libvmod_parsereq.so";
+
+	sub vcl_recv {
+		parsereq.init();
+	}
+	sub vcl_deliver{
+		set resp.http.a        = parsereq.param(req, "a");
+	}
+} -start
+
+client c1 {
+	txreq -req GET -url "/" -hdr "a: b"
+	rxresp
+	expect resp.http.a  == "b"
+
+}
+
+client c1 -run

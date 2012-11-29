@@ -11,6 +11,7 @@
 
 
 #define POST_REQ_HDR "\024X-VMOD-PARSEREQ-PTR:"
+#define POST_REQ_HDR_NAME "X-VMOD-PARSEREQ-PTR"
 
 
 
@@ -33,6 +34,7 @@ static vcl_func_f         *vmod_Hook_miss    = NULL;
 static vcl_func_f         *vmod_Hook_pass    = NULL;
 static vcl_func_f         *vmod_Hook_pipe    = NULL;
 static vcl_func_f         *vmod_Hook_deliver = NULL;
+static vcl_func_f         *vmod_Hook_error   = NULL;
 
 static pthread_mutex_t    vmod_mutex = PTHREAD_MUTEX_INITIALIZER;
 
@@ -42,7 +44,7 @@ static unsigned           is_debug           = 0;
 
 //////////////////////////////////////////
 //for internal head
-enum VMODREQ_TYPE { POST, GET, COOKIE };
+enum VMODREQ_TYPE { POST, GET, COOKIE, REQ, AUTO, NONE};
 
 struct hdr {
 	char *key;
@@ -56,9 +58,13 @@ struct hdr {
 struct vmod_headers {
 	unsigned			magic;
 #define VMOD_HEADERS_MAGIC 0x8d4d29ac
+//	unsigned value_enabled;
 	char *seek;
+//	int count;//まだ値入れてないのであとで入れる
 	VTAILQ_HEAD(, hdr) headers;
 };
+
+
 
 struct vmod_request {
 	unsigned			magic;
@@ -66,6 +72,11 @@ struct vmod_request {
 	struct vmod_headers* post;
 	struct vmod_headers* get;
 	struct vmod_headers* cookie;
+	
+	struct vmod_headers* hdr_req;
+
+	unsigned init_req;
+	char seek_tmp[256];
 	
 	int  parse_ret;
 	
@@ -77,6 +88,8 @@ struct vmod_request {
 	
 	char *raw_cookie;
 	int  size_cookie;
+
+	enum VMODREQ_TYPE nowtype;
 };
 
 
@@ -91,10 +104,14 @@ ssize_t vmod_HTC_Read(struct worker *, struct http_conn *, void *, size_t );
 
 static int vmod_Hook_unset_deliver(struct sess *);
 static int vmod_Hook_unset_bereq(struct sess *);
+static int vmod_Hook_unset_error(struct sess *);
+
+static void vmodreq_headers_free(struct vmod_headers *);
+
 
 const char *vmodreq_header(struct sess *, enum VMODREQ_TYPE , const char *);
-void vmodreq_sethead(struct vmod_request *, enum VMODREQ_TYPE ,const char *, const char *,int);
-struct vmod_headers *vmodreq_getheaders(struct vmod_request *, enum VMODREQ_TYPE );
+void vmodreq_sethead(struct sess *,struct vmod_request *, enum VMODREQ_TYPE ,const char *, const char *,int);
+struct vmod_headers *vmodreq_getheaders(struct sess *,struct vmod_request *, enum VMODREQ_TYPE );
 struct vmod_request *vmodreq_get(struct sess *);
 struct vmod_request *vmodreq_init(struct sess *);
 void vmodreq_init_cookie(struct sess *,struct vmod_request *);
@@ -108,14 +125,31 @@ int vmodreq_get_parse(struct sess *);
 int vmodreq_cookie_parse(struct sess *);
 int vmodreq_reqbody(struct sess *, char**,int*);
 int vmodreq_post_parse(struct sess *);
+void init_header(struct sess *, enum gethdr_e);
 
-const char *vmodreq_getheader(struct vmod_request *, enum VMODREQ_TYPE , const char *);
-int vmodreq_getheadersize(struct vmod_request *, enum VMODREQ_TYPE , const char *);
-struct hdr *vmodreq_getrawheader(struct vmod_request *, enum VMODREQ_TYPE , const char *);
+const char *vmodreq_getheader(struct sess *,struct vmod_request *, enum VMODREQ_TYPE , const char *);
+int vmodreq_getheadersize(struct sess *,struct vmod_request *, enum VMODREQ_TYPE , const char *);
+struct hdr *vmodreq_getrawheader(struct sess *,struct vmod_request *, enum VMODREQ_TYPE , const char *);
 int vmodreq_decode_urlencode(struct sess *,char *,enum VMODREQ_TYPE,char,char,int);
 
-
+int vmodreq_hdr_count(struct sess *, enum VMODREQ_TYPE );
 const char *vmodreq_seek(struct sess *, enum VMODREQ_TYPE );
 void vmodreq_seek_reset(struct sess *, enum VMODREQ_TYPE );
 
 void debugmsg(struct sess *,const char*,...);
+
+typedef int (*vcl_userdef_func)(struct sess *sp);
+
+const char* vmod_read_cur(struct sess *, enum VMODREQ_TYPE);
+unsigned vmod_read_iterate(struct sess *, const char* , enum VMODREQ_TYPE type);
+
+int vmodreq_headersize(struct sess *, enum VMODREQ_TYPE , const char *);
+enum VMODREQ_TYPE vmod_convtype(const char*);
+enum gethdr_e vmod_convhdrtype(struct sess *,const char*, unsigned*);
+void gen_hdrtxt(const char *, char *, int);
+int count_header(struct sess *, enum gethdr_e );
+struct http * vrt_selecthttp(struct sess *, enum gethdr_e);
+const char*get_header_key(struct sess *, enum gethdr_e , int );
+void header_iterate(struct sess *, const char* , enum gethdr_e );
+
+void chkinit(struct sess *);

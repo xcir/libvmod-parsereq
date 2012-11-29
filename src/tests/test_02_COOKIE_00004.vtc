@@ -1,0 +1,35 @@
+varnishtest "COOKIE"
+
+server s1 {
+       rxreq
+       txresp
+} -start
+
+varnish v1 -vcl+backend {
+	import parsereq from "${vmod_topbuild}/src/.libs/libvmod_parsereq.so";
+
+	sub vcl_recv {
+		parsereq.init();
+	}
+	sub vcl_deliver{
+		set resp.http.a        = parsereq.param(cookie, "a");
+		set resp.http.b        = parsereq.param(cookie, "b");
+		set resp.http.c        = parsereq.param(cookie, "c");
+		set resp.http.d        = parsereq.param(cookie, "d");
+		set resp.http.none     = parsereq.param(cookie, "");
+		set resp.http.amulti   = parsereq.param(cookie, "a[]");
+		set resp.http.raw      = parsereq.body(cookie);
+	}
+} -start
+
+client c1 {
+	txreq -req GET -url "/" -hdr "Cookie: ;;a=b;;b=c;;;"
+	rxresp
+	expect resp.http.a  == "b"
+	expect resp.http.b  == "c"
+
+	expect resp.http.raw  == ";;a=b;;b=c;;;"
+
+}
+
+client c1 -run

@@ -1,0 +1,50 @@
+varnishtest "iterate(auto)"
+
+server s1 {
+       rxreq
+       txresp
+} -start
+
+varnish v1 -vcl+backend {
+	import parsereq from "${vmod_topbuild}/src/.libs/libvmod_parsereq.so";
+
+	sub iterate {
+		if(parsereq.current_key(auto) != "hoge"){
+			set req.http.hoge = req.http.hoge + parsereq.current_key(auto) + ":";
+			set req.http.hoge = req.http.hoge + parsereq.param(auto, parsereq.current_key(auto)) + " ";
+		}
+	}
+	sub vcl_recv {
+		parsereq.init();
+		if(1 == 0){
+			call iterate;
+		}
+		set req.http.hoge= "";
+		C{
+			if(Vmod_Func_parsereq.iterate(sp, "req",(const char*)VGC_function_iterate)) return(1);
+		}C
+		set req.http.hoge2 = req.http.hoge;
+		set req.http.hoge= "";
+		C{
+			if(Vmod_Func_parsereq.iterate(sp, "get",(const char*)VGC_function_iterate)) return(1);
+		}C
+		return(lookup);
+	}
+	sub vcl_deliver{
+		set resp.http.t1 = req.http.hoge;
+		set resp.http.t2 = req.http.hoge2;
+	}
+} -start
+
+client c1 {
+	txreq -req GET -url "/?a=c&b=d" -hdr "a: 1234\r\nb: 12"
+	rxresp
+	expect resp.http.t1   == "b:d a:c "
+	expect resp.http.t2   == "b:12 a:1234 "
+
+
+
+}
+
+
+client c1 -run

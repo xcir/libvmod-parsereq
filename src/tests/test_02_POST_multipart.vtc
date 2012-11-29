@@ -1,0 +1,38 @@
+varnishtest "POST"
+
+server s1 {
+       rxreq
+       txresp
+} -start
+
+varnish v1 -vcl+backend {
+	import parsereq from "${vmod_topbuild}/src/.libs/libvmod_parsereq.so";
+
+	sub vcl_recv {
+		parsereq.init();
+	}
+	sub vcl_deliver{
+		set resp.http.a = parsereq.param(post,  "a");
+		set resp.http.b = parsereq.param(post,  "b");
+		set resp.http.c = parsereq.param(post,  "c");
+		set resp.http.d = parsereq.param(post,  "d");
+		if(parsereq.body(post)){
+			set resp.http.run = 1;
+		}
+	}
+} -start
+
+client c1 {
+	txreq -req POST -url "/" -hdr "Content-Type: multipart/form-data; boundary=-----abcdef" -body "-------abcdef\r\nContent-Disposition: form-data; name=\"a\"\r\n\r\na\r\n-------abcdef\r\nContent-Disposition: form-data; name=\"b\"\r\n\r\nbb\r\n-------abcdef\r\nContent-Disposition: form-data; name=\"c\"\r\n\r\nccc\r\n-------abcdef\r\nContent-Disposition: form-data; name=\"d\"; filename=\"file.txt\"\r\nContent-Type: text/plain\r\n\r\nddd\r\n-------abcdef--"
+	rxresp
+	expect resp.http.a  == "a"
+	expect resp.http.b  == "bb"
+	expect resp.http.c  == "ccc"
+	expect resp.http.d  == "ddd"
+	expect resp.http.run  == "1"
+
+
+}
+
+
+client c1 -run
