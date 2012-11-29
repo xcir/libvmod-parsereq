@@ -286,9 +286,7 @@ void vmodreq_sethead(struct sess *sp, struct vmod_request *c, enum VMODREQ_TYPE 
 //オフセットをリセットする
 void vmodreq_seek_reset(struct sess *sp, enum VMODREQ_TYPE type)
 {
-	if(!vmodreq_get_raw(sp)){
-		VRT_panic(sp,"please write \"parsereq.init();\" to 1st line in vcl_recv.",vrt_magic_string_end);
-	}
+	chkinit(sp);
 	struct vmod_request *c = vmodreq_get(sp);
 	struct vmod_headers *hs= vmodreq_getheaders(sp,c,type);
 	switch(type){
@@ -305,29 +303,18 @@ void vmodreq_seek_reset(struct sess *sp, enum VMODREQ_TYPE type)
 ////////////////////////////////////////////////////
 //現在のオフセットのキーを取得
 const char* vmod_read_cur(struct sess *sp, enum VMODREQ_TYPE type){
-	if(!vmodreq_get_raw(sp)){
-		VRT_panic(sp,"please write \"parsereq.init();\" to 1st line in vcl_recv.",vrt_magic_string_end);
-	}
+	chkinit(sp);
 	struct vmod_request *c = vmodreq_get(sp);
 
 	struct vmod_headers *hs;
 	hs = vmodreq_getheaders(sp,c,type);
 	return hs->seek;
 }
-const char* vmod_readheader_cur(struct sess *sp, enum gethdr_e where){
-	if(!vmodreq_get_raw(sp)){
-		VRT_panic(sp,"please write \"parsereq.init();\" to 1st line in vcl_recv.",vrt_magic_string_end);
-	}
-
-
-}
 ////////////////////////////////////////////////////
 //反復処理を行う
 unsigned vmod_read_iterate(struct sess *sp, const char* p, enum VMODREQ_TYPE type){
 	unsigned ret = (0 == 1);
-	if(!vmodreq_get_raw(sp)){
-		VRT_panic(sp,"please write \"parsereq.init();\" to 1st line in vcl_recv.",vrt_magic_string_end);
-	}
+	chkinit(sp);
 	struct vmod_request *c = vmodreq_get(sp);
 	
 	vmodreq_seek_reset(sp,type);
@@ -352,9 +339,7 @@ unsigned vmod_read_iterate(struct sess *sp, const char* p, enum VMODREQ_TYPE typ
 //各ヘッダの個数を取得
 int vmodreq_hdr_count(struct sess *sp, enum VMODREQ_TYPE type)
 {
-	if(!vmodreq_get_raw(sp)){
-		VRT_panic(sp,"please write \"parsereq.init();\" to 1st line in vcl_recv.",vrt_magic_string_end);
-	}
+	chkinit(sp);
 	struct vmod_request *c = vmodreq_get(sp);
 	struct hdr *h;
 
@@ -374,9 +359,7 @@ int vmodreq_hdr_count(struct sess *sp, enum VMODREQ_TYPE type)
 //オフセットを移動する
 const char *vmodreq_seek(struct sess *sp, enum VMODREQ_TYPE type)
 {
-	if(!vmodreq_get_raw(sp)){
-		VRT_panic(sp,"please write \"parsereq.init();\" to 1st line in vcl_recv.",vrt_magic_string_end);
-	}
+	chkinit(sp);
 	struct vmod_request *c = vmodreq_get(sp);
 	struct hdr *h;
 	struct hdr *r = NULL;
@@ -469,9 +452,7 @@ const char *vmodreq_getheader(struct sess *sp, struct vmod_request *c, enum VMOD
 //サイズを取得（呼び出し用にラップ）
 int vmodreq_headersize(struct sess *sp, enum VMODREQ_TYPE type, const char *header)
 {
-	if(!vmodreq_get_raw(sp)){
-		VRT_panic(sp,"please write \"parsereq.init();\" to 1st line in vcl_recv.",vrt_magic_string_end);
-	}
+	chkinit(sp);
 	struct vmod_request *c = vmodreq_get(sp);
 	return vmodreq_getheadersize(sp,c,type,header);
 }
@@ -481,9 +462,7 @@ int vmodreq_headersize(struct sess *sp, enum VMODREQ_TYPE type, const char *head
 //値を取得（呼び出し用にラップ）
 const char *vmodreq_header(struct sess *sp, enum VMODREQ_TYPE type, const char *header)
 {
-	if(!vmodreq_get_raw(sp)){
-		VRT_panic(sp,"please write \"parsereq.init();\" to 1st line in vcl_recv.",vrt_magic_string_end);
-	}
+	chkinit(sp);
 	struct vmod_request *c = vmodreq_get(sp);
 	return vmodreq_getheader(sp,c,type,header);
 }
@@ -573,7 +552,7 @@ enum gethdr_e vmod_convhdrtype(struct sess *sp,const char*type, unsigned* ret){
 void gen_hdrtxt(const char *header,char *p, int size){
 	int len = strlen(header);
 	if(size < len + 3 && len > 252){
-		*p = NULL;
+		*p = 0;
 		return;
 	}
 	p[0] = (unsigned char)len +1;
@@ -586,7 +565,7 @@ void gen_hdrtxt(const char *header,char *p, int size){
 //////////////////////////////////////////
 //vrt.cから移植
 struct http *
-vrt_selecthttp(const struct sess *sp, enum gethdr_e where)
+vrt_selecthttp(struct sess *sp, enum gethdr_e where)
 {
 	struct http *hp;
 
@@ -616,17 +595,15 @@ vrt_selecthttp(const struct sess *sp, enum gethdr_e where)
 }
 //////////////////////////////////////////
 //ヘッダの個数を取得
-int count_header(const struct sess *sp, enum gethdr_e where)
+int count_header(struct sess *sp, enum gethdr_e where)
 {
 	struct http *hp;
 	hp = vrt_selecthttp(sp, where);
 	return hp->nhd - HTTP_HDR_FIRST;
 }
 
-const char *get_header_key(const struct sess *sp, enum gethdr_e where, int index){
-	if(!vmodreq_get_raw(sp)){
-		VRT_panic(sp,"please write \"parsereq.init();\" to 1st line in vcl_recv.",vrt_magic_string_end);
-	}
+const char *get_header_key(struct sess *sp, enum gethdr_e where, int index){
+	chkinit(sp);
 	struct vmod_request *c = vmodreq_get(sp);
 
 	if(index == 0) return NULL;
@@ -644,10 +621,8 @@ const char *get_header_key(const struct sess *sp, enum gethdr_e where, int index
 	c->seek_tmp[l] = 0;
 	return c->seek_tmp;
 }
-void init_header(const struct sess *sp, enum gethdr_e where){
-	if(!vmodreq_get_raw(sp)){
-		VRT_panic(sp,"please write \"parsereq.init();\" to 1st line in vcl_recv.",vrt_magic_string_end);
-	}
+void init_header(struct sess *sp, enum gethdr_e where){
+	chkinit(sp);
 	struct vmod_request *c = vmodreq_get(sp);
 	struct vmod_headers *h;
 	int *en;
@@ -664,7 +639,7 @@ void init_header(const struct sess *sp, enum gethdr_e where){
 		AN(h);
 	}
 	int max = count_header(sp,where);
-	char *tmpkey;
+	const char *tmpkey;
 	struct hdr *vh;
 	
 	for(int i=1; i<=max; i++){
@@ -1071,4 +1046,9 @@ void debugmsg(struct sess *sp,const char* f,...){
 	va_start(ap, f);
 	vsyslog(LOG_NOTICE, f ,ap);
 	va_end(ap);
+}
+void chkinit(struct sess *sp){
+	if(!vmodreq_get_raw(sp)){
+		VRT_panic(sp,"please write \"parsereq.init();\" to 1st line in vcl_recv.",vrt_magic_string_end);
+	}
 }

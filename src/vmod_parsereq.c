@@ -66,7 +66,7 @@ int vmod_size(struct sess *sp, const char *type, const char *header)
 	if(ret){
 		//headerの値を作る必要がある
 		char tmp[256];
-		gen_hdrtxt(header, &tmp, 256);
+		gen_hdrtxt(header, tmp, 256);
 		char * val = VRT_GetHdr(sp, where, tmp);
 		if(val){
 			return strlen(VRT_GetHdr(sp, where, tmp));
@@ -86,7 +86,7 @@ const char *vmod_param(struct sess *sp, const char *type ,const char *header){
 	if(ret){
 		//headerの値を作る必要がある
 		char tmp[256];
-		gen_hdrtxt(header, &tmp, 256);
+		gen_hdrtxt(header, tmp, 256);
 		return VRT_GetHdr(sp, where, tmp);
 	}else{
 		return vmodreq_header(sp,vmod_convtype(type) ,header);
