@@ -7,7 +7,7 @@ Varnish parse data module
 -------------------------
 
 :Author: Syohei Tanaka(@xcir)
-:Date: 2012-11-23
+:Date: 2012-11-30
 :Version: 0.11
 :Manual section: 3
 
