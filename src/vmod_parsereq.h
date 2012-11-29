@@ -34,6 +34,7 @@ static vcl_func_f         *vmod_Hook_miss    = NULL;
 static vcl_func_f         *vmod_Hook_pass    = NULL;
 static vcl_func_f         *vmod_Hook_pipe    = NULL;
 static vcl_func_f         *vmod_Hook_deliver = NULL;
+static vcl_func_f         *vmod_Hook_error   = NULL;
 
 static pthread_mutex_t    vmod_mutex = PTHREAD_MUTEX_INITIALIZER;
 
@@ -103,6 +104,7 @@ ssize_t vmod_HTC_Read(struct worker *, struct http_conn *, void *, size_t );
 
 static int vmod_Hook_unset_deliver(struct sess *);
 static int vmod_Hook_unset_bereq(struct sess *);
+static int vmod_Hook_unset_error(struct sess *);
 
 static void vmodreq_headers_free(struct vmod_headers *);
 
@@ -140,7 +142,7 @@ typedef int (*vcl_userdef_func)(struct sess *sp);
 
 const char* vmod_read_cur(struct sess *, enum VMODREQ_TYPE);
 const char* vmod_readheader_cur(struct sess *, enum gethdr_e);
-void vmod_read_iterate(struct sess *, const char* , enum VMODREQ_TYPE type);
+unsigned vmod_read_iterate(struct sess *, const char* , enum VMODREQ_TYPE type);
 
 int vmodreq_headersize(struct sess *, enum VMODREQ_TYPE , const char *);
 enum VMODREQ_TYPE vmod_convtype(const char*);

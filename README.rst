@@ -26,6 +26,7 @@ SUPPORT DATA TYPES
 * GET
 * COOKIE
 * REQ(req.http.*)
+* AUTO(auto type using for in subroutine only, that is called by iterate function.)
 
 ATTENTION
 ============
@@ -113,7 +114,7 @@ Prototype
                 post_header(STRING key)
                 get_header(STRING key)
                 cookie_header(STRING key)
-                param(enum {post, get, cookie, req}, STRING key)
+                param(enum {post, get, cookie, req, auto}, STRING key)
 Parameter
         ::
 
@@ -180,7 +181,7 @@ Prototype
                 post_read_keylist()
                 get_read_keylist()
                 cookie_read_keylist()
-                next_key(enum {post, get, cookie, req})
+                next_key(enum {post, get, cookie, req, auto})
 
 Parameter
 
@@ -217,7 +218,7 @@ Prototype
                 post_seek_reset()
                 get_seek_reset()
                 cookie_seek_reset()
-                reset_offset(enum {post, get, cookie, req})
+                reset_offset(enum {post, get, cookie, req, auto})
 
 Parameter
 
@@ -257,7 +258,7 @@ size
 Prototype
         ::
 
-                size(enum {post, get, cookie, req}, STRING key)
+                size(enum {post, get, cookie, req, auto}, STRING key)
 
 Parameter
         ::
@@ -297,7 +298,7 @@ current_key
 Prototype
         ::
 
-                current_key(enum {post, get, cookie, req})
+                current_key(enum {post, get, cookie, req, auto})
 
 Parameter
 
@@ -339,7 +340,7 @@ next_offset
 Prototype
         ::
 
-                next_offset(enum {post, get, cookie, req})
+                next_offset(enum {post, get, cookie, req, auto})
 
 Parameter
 
@@ -375,7 +376,7 @@ Example
                 t3: >>name1
                 t4: >>name1
 
-iterate
+iterate(EXPERIMENTAL)
 ----------------------------------------------------------------
 
 Prototype
@@ -384,14 +385,15 @@ Prototype
                 iterate(enum {post, get, cookie, req}, STRING)
 
 Parameter
-
 	STRING subroutine pointer
 
 Return value
-	VOID
+	BOOL
 
 Description
 	Count all elements in parameter for iterate the subroutine.
+	This function is subject to change without notice.
+
 
 
 Example
@@ -412,7 +414,7 @@ Example
                   }
                   set req.http.hoge= "";
                   C{
-                    Vmod_Func_parsereq.iterate(sp, "get", (const char*)VGC_function_iterate);
+                    if(Vmod_Func_parsereq.iterate(sp, "get", (const char*)VGC_function_iterate)) return(1);
                   }C
 
                 }
@@ -468,7 +470,7 @@ HISTORY
 ===========
 
 
-Version 0.11: Support REQ data type.(req.http.*)
+Version 0.11: Support REQ data type.(req.http.*) And AUTO data type.
 
 Version 0.10: Add: param, size, body, next_key, next_offset, current_key, iterate, reset_offset
 

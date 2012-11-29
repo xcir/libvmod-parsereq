@@ -21,12 +21,12 @@ varnish v1 -vcl+backend {
 		}
 		set req.http.hoge= "";
 		C{
-			Vmod_Func_parsereq.iterate(sp, "req",(const char*)VGC_function_iterate);
+			if(Vmod_Func_parsereq.iterate(sp, "req",(const char*)VGC_function_iterate)) return(1);
 		}C
 		set req.http.hoge2 = req.http.hoge;
 		set req.http.hoge= "";
 		C{
-			Vmod_Func_parsereq.iterate(sp, "get",(const char*)VGC_function_iterate);
+			if(Vmod_Func_parsereq.iterate(sp, "get",(const char*)VGC_function_iterate)) return(1);
 		}C
 		return(lookup);
 	}

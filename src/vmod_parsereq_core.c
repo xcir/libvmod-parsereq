@@ -172,6 +172,9 @@ struct vmod_request *vmodreq_init(struct sess *sp){
 			
 			vmod_Hook_pipe			= sp->vcl->pipe_func;
 			sp->vcl->pipe_func		= vmod_Hook_unset_bereq;
+
+			vmod_Hook_error			= sp->vcl->error_func;
+			sp->vcl->error_func		= vmod_Hook_unset_error;
 			
 			hook_done				= 1;
 
@@ -320,7 +323,8 @@ const char* vmod_readheader_cur(struct sess *sp, enum gethdr_e where){
 }
 ////////////////////////////////////////////////////
 //反復処理を行う
-void vmod_read_iterate(struct sess *sp, const char* p, enum VMODREQ_TYPE type){
+unsigned vmod_read_iterate(struct sess *sp, const char* p, enum VMODREQ_TYPE type){
+	unsigned ret = (0 == 1);
 	if(!vmodreq_get_raw(sp)){
 		VRT_panic(sp,"please write \"parsereq.init();\" to 1st line in vcl_recv.",vrt_magic_string_end);
 	}
@@ -335,9 +339,13 @@ void vmod_read_iterate(struct sess *sp, const char* p, enum VMODREQ_TYPE type){
 		vmodreq_seek(sp,type);
 		if(type == REQ && strcmp(vmod_read_cur(sp,type), POST_REQ_HDR_NAME) == 0)
 			continue;
-		func(sp);
+		if(func(sp)){
+			ret = (1==1);
+			break;
+		}
 	}
 	c->nowtype = NONE;
+	return ret;
 }
 
 ////////////////////////////////////////////////////
@@ -496,8 +504,11 @@ static int vmod_Hook_unset_bereq(struct sess *sp){
 		case STP_PIPE:
 			return(vmod_Hook_pipe(sp));
 	}
-
-	
+}
+static int vmod_Hook_unset_error(struct sess *sp){
+	struct vmod_request *c = vmodreq_get(sp);
+	c->nowtype = NONE;
+	return(vmod_Hook_error(sp));
 
 }
 //////////////////////////////////////////

@@ -19,7 +19,7 @@ varnish v1 -vcl+backend {
 		}
 		set req.http.hoge= "";
 		C{
-			Vmod_Func_parsereq.iterate(sp, "cookie",(const char*)VGC_function_iterate);
+			if(Vmod_Func_parsereq.iterate(sp, "cookie",(const char*)VGC_function_iterate)) return(1);
 		}C
 
 	}

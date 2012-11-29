@@ -52,8 +52,8 @@ const char* vmod_current_key(struct sess *sp, const char* type){
 
 ///////////////////////////////////////////////////////////////
 //反復処理系
-void vmod_iterate(struct sess *sp, const char* type, const char* p){
-	vmod_read_iterate(sp,p,vmod_convtype(type));
+unsigned vmod_iterate(struct sess *sp, const char* type, const char* p){
+	return vmod_read_iterate(sp,p,vmod_convtype(type));
 }
 
 
@@ -141,13 +141,19 @@ const char* vmod_cookie_body(struct sess *sp){
 ///////////////////////////////////////////////////////////////
 //初期化、デバッグなどシステム系
 void vmod_init(struct sess *sp){
-	vmodreq_get(sp);
+	struct vmod_request *c;
+	c = vmodreq_get_raw(sp);
+	if(c){
+		c->nowtype = NONE;
+	}else{
+		vmodreq_get(sp);
+	}
 }
 
 void vmod_debuginit(struct sess *sp)
 {
 	is_debug = 1;
-	vmodreq_get(sp);
+	vmod_init(sp);
 }
 
 int vmod_errcode(struct sess *sp){
