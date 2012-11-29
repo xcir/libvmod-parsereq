@@ -1,0 +1,33 @@
+varnishtest "POST-urlencode"
+
+server s1 {
+       rxreq
+       txresp
+} -start
+
+varnish v1 -vcl+backend {
+	import parsereq from "${vmod_topbuild}/src/.libs/libvmod_parsereq.so";
+
+	sub vcl_recv {
+		parsereq.init();
+	}
+	sub vcl_deliver{
+		set resp.http.a        = parsereq.param(post,  "a");
+		set resp.http.b        = parsereq.param(post,  "b");
+		set resp.http.c        = parsereq.param(post,  "c");
+		set resp.http.d        = parsereq.param(post,  "d");
+		set resp.http.none     = parsereq.param(post,  "");
+		set resp.http.amulti   = parsereq.param(post,  "a[]");
+		set resp.http.raw      = parsereq.body(post);
+	}
+} -start
+
+client c1 {
+	txreq -req POST -url "/" -hdr "Content-Type: application/x-www-form-urlencoded; charset=UTF-8" -body "a=b"
+	rxresp
+	expect resp.http.a  == "b"
+
+	expect resp.http.raw  == "a=b"
+}
+
+client c1 -run

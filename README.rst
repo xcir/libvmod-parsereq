@@ -7,8 +7,8 @@ Varnish parse data module
 -------------------------
 
 :Author: Syohei Tanaka(@xcir)
-:Date: 2012-10-23
-:Version: 0.9
+:Date: 2012-11-23
+:Version: 0.11
 :Manual section: 3
 
 SYNOPSIS
@@ -18,6 +18,15 @@ import parsereq;
 
 DESCRIPTION
 ==============
+
+SUPPORT DATA TYPES
+===================
+
+* POST
+* GET
+* COOKIE
+* REQ(req.http.*)
+* AUTO(auto type using for in subroutine only, that is called by iterate function.)
 
 ATTENTION
 ============
@@ -81,7 +90,7 @@ Return value
                 
 
 Description
-	get status code.
+	Get status code.
 
 Example
         ::
@@ -96,8 +105,8 @@ Example
                   }
                 }
 
-post_header/get_header/cookie_header
-------------------------------------
+post_header/get_header/cookie_header/param
+--------------------------------------------
 
 Prototype
         ::
@@ -105,6 +114,7 @@ Prototype
                 post_header(STRING key)
                 get_header(STRING key)
                 cookie_header(STRING key)
+                param(enum {post, get, cookie, req, auto}, STRING key)
 Parameter
         ::
 
@@ -127,8 +137,8 @@ Example
                 //return
                 hoge: hogevalue
 
-post_body/get_body/cookie_body
-------------------------------
+post_body/get_body/cookie_body/body
+--------------------------------------
 
 Prototype
         ::
@@ -136,6 +146,7 @@ Prototype
                 post_body()
                 get_body()
                 cookie_body()
+                body(enum {post, get, cookie})
 
 Parameter
 
@@ -161,8 +172,8 @@ Example
                 hoge: hoge=hogevalue&mage=magevalue
 
 
-post_read_keylist/get_read_keylist/cookie_read_keylist
-------------------------------------------------------
+post_read_keylist/get_read_keylist/cookie_read_keylist/next_key
+-----------------------------------------------------------------
 
 Prototype
         ::
@@ -170,6 +181,7 @@ Prototype
                 post_read_keylist()
                 get_read_keylist()
                 cookie_read_keylist()
+                next_key(enum {post, get, cookie, req, auto})
 
 Parameter
 
@@ -197,8 +209,8 @@ Example
                 n1: name2
                 n2: name1
 
-post_seek_reset/get_seek_reset/cookie_seek_reset
-------------------------------------------------
+post_seek_reset/get_seek_reset/cookie_seek_reset/reset_offset
+--------------------------------------------------------------
 
 Prototype
         ::
@@ -206,6 +218,7 @@ Prototype
                 post_seek_reset()
                 get_seek_reset()
                 cookie_seek_reset()
+                reset_offset(enum {post, get, cookie, req, auto})
 
 Parameter
 
@@ -237,6 +250,182 @@ Example
                 n2: name1
                 n3: name2
                 n4: name1
+
+
+size
+------------------------------------------------
+
+Prototype
+        ::
+
+                size(enum {post, get, cookie, req, auto}, STRING key)
+
+Parameter
+        ::
+
+                STRING key
+                  Desired key value 
+
+	
+Return value
+	INT
+
+Description
+	Get the size of value.
+
+Example
+        ::
+
+                //req
+                /?name1=a&name2=bbb
+                
+                //vcl
+                vcl_deliver{
+                  set resp.http.n1 = parsereq.size(get, "name1");
+                  set resp.http.n2 = parsereq.size(get, "name2");
+                  //nothing
+                  set resp.http.na = parsereq.size(get, "name99");
+                }
+                
+                //return
+                n1: 1
+                n2: 3
+                na: 0
+
+current_key
+-----------------------------------------------------------
+
+Prototype
+        ::
+
+                current_key(enum {post, get, cookie, req, auto})
+
+Parameter
+
+	
+Return value
+	STRING
+
+Description
+	Get current key-name of the offset.
+
+Example
+        ::
+
+                //req
+                /?name1=a&name2=bbb
+                
+                //vcl
+                vcl_deliver{
+                  set resp.http.t1 = ">>" + parsereq.current_key(get);
+                  parsereq.next_offset(get);
+                  set resp.http.t2 = ">>" + parsereq.current_key(get);
+                  parsereq.next_offset(get);
+                  set resp.http.t3 = ">>" + parsereq.current_key(get);
+                  parsereq.next_offset(get);
+                  set resp.http.t4 = ">>" + parsereq.current_key(get);
+                }
+                
+                //return
+                t1: >>
+                t2: >>name2
+                t3: >>name1
+                t4: >>name1
+                
+
+
+next_offset
+-------------------------------------------------------------
+
+Prototype
+        ::
+
+                next_offset(enum {post, get, cookie, req, auto})
+
+Parameter
+
+	
+Return value
+	VOID
+
+Description
+	Change to the next key.
+	If next key isn't exist, will not change.
+
+
+Example
+        ::
+
+                //req
+                /?name1=a&name2=bbb
+                
+                //vcl
+                vcl_deliver{
+                  set resp.http.t1 = ">>" + parsereq.current_key(get);
+                  parsereq.next_offset(get);
+                  set resp.http.t2 = ">>" + parsereq.current_key(get);
+                  parsereq.next_offset(get);
+                  set resp.http.t3 = ">>" + parsereq.current_key(get);
+                  parsereq.next_offset(get);
+                  set resp.http.t4 = ">>" + parsereq.current_key(get);
+                }
+                
+                //return
+                t1: >>
+                t2: >>name2
+                t3: >>name1
+                t4: >>name1
+
+iterate(EXPERIMENTAL)
+----------------------------------------------------------------
+
+Prototype
+        ::
+
+                iterate(enum {post, get, cookie, req}, STRING)
+
+Parameter
+	STRING subroutine pointer
+
+Return value
+	BOOL
+
+Description
+	Count all elements in parameter for iterate the subroutine.
+	This function is subject to change without notice.
+
+
+
+Example
+        ::
+
+                //req
+                /?name1=a&name2=bbb
+                
+                //vcl
+                sub iterate {
+                  set req.http.hoge = req.http.hoge + parsereq.current_key(get) + ":";
+                  set req.http.hoge = req.http.hoge + parsereq.get_header(parsereq.current_key(get)) + " ";
+                }
+                sub vcl_recv {
+                  parsereq.init();
+                  if(1 == 0){
+                    call iterate;
+                  }
+                  set req.http.hoge= "";
+                  C{
+                    if(Vmod_Func_parsereq.iterate(sp, "get", (const char*)VGC_function_iterate)) return(1);
+                  }C
+
+                }
+                sub vcl_deliver{
+                  set resp.http.t1 = req.http.hoge;
+                }
+                
+                //return
+                t1: name2:bbb name1:a 
+                
+
 
 
 INSTALLATION
@@ -279,6 +468,10 @@ Tested Version
 
 HISTORY
 ===========
+
+Version 0.11: Support REQ data type.(req.http.*) And AUTO data type.
+
+Version 0.10: Add: param, size, body, next_key, next_offset, current_key, iterate, reset_offset
 
 Version 0.9: Bug fix: always segfault on x86. And sometimes segfault on x86_64. [issue #5 Thanks comotion]
 

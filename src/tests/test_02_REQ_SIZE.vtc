@@ -1,0 +1,31 @@
+varnishtest "size(req)"
+
+server s1 {
+       rxreq
+       txresp
+} -start
+
+varnish v1 -vcl+backend {
+	import parsereq from "${vmod_topbuild}/src/.libs/libvmod_parsereq.so";
+
+	sub vcl_recv {
+		parsereq.init();
+		return(lookup);
+	}
+	sub vcl_deliver{
+		set resp.http.t1 = parsereq.size(req, "a");
+		set resp.http.t2 = parsereq.size(req, "aaaa");
+	}
+} -start
+
+client c1 {
+	txreq -req GET -url "/" -hdr "a: 1234"
+	rxresp
+	expect resp.http.t1   == "4"
+	expect resp.http.t2   == "0"
+
+
+}
+
+
+client c1 -run
