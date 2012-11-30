@@ -105,15 +105,15 @@ Example
                   }
                 }
 
-post_header/get_header/cookie_header/param
+param/post_header/get_header/cookie_header
 --------------------------------------------
 
 Prototype
         ::
 
-                post_header(STRING key)
-                get_header(STRING key)
-                cookie_header(STRING key)
+                post_header(STRING key) (LEGACY)
+                get_header(STRING key) (LEGACY)
+                cookie_header(STRING key) (LEGACY)
                 param(enum {post, get, cookie, req, auto}, STRING key)
 Parameter
         ::
@@ -131,21 +131,21 @@ Example
         ::
 
                 vcl_deliver{
-                  set resp.http.hoge = parsereq.post_header("hoge");
+                  set resp.http.hoge = parsereq.param(post, "hoge");
                 }
                 
                 //return
                 hoge: hogevalue
 
-post_body/get_body/cookie_body/body
+body/post_body/get_body/cookie_body
 --------------------------------------
 
 Prototype
         ::
 
-                post_body()
-                get_body()
-                cookie_body()
+                post_body() (LEGACY)
+                get_body() (LEGACY)
+                cookie_body() (LEGACY)
                 body(enum {post, get, cookie})
 
 Parameter
@@ -165,22 +165,22 @@ Example
 
                 //vcl
                 vcl_deliver{
-                  set resp.http.hoge = parsereq.post_body();
+                  set resp.http.hoge = parsereq.body(post);
                 }
                 
                 //return
                 hoge: hoge=hogevalue&mage=magevalue
 
 
-post_read_keylist/get_read_keylist/cookie_read_keylist/next_key
+next_key/post_read_keylist/get_read_keylist/cookie_read_keylist
 -----------------------------------------------------------------
 
 Prototype
         ::
 
-                post_read_keylist()
-                get_read_keylist()
-                cookie_read_keylist()
+                post_read_keylist() (LEGACY)
+                get_read_keylist() (LEGACY)
+                cookie_read_keylist() (LEGACY)
                 next_key(enum {post, get, cookie, req, auto})
 
 Parameter
@@ -199,25 +199,25 @@ Example
                 
                 //vcl
                 vcl_deliver{
-                  set resp.http.n1 = parsereq.get_read_keylist();
-                  set resp.http.n2 = parsereq.get_read_keylist();
+                  set resp.http.n1 = parsereq.next_key(get);
+                  set resp.http.n2 = parsereq.next_key(get);
                   //nothing
-                  set resp.http.n3 = parsereq.get_read_keylist();
+                  set resp.http.n3 = parsereq.next_key(get);
                 }
                 
                 //return
                 n1: name2
                 n2: name1
 
-post_seek_reset/get_seek_reset/cookie_seek_reset/reset_offset
+reset_offset/post_seek_reset/get_seek_reset/cookie_seek_reset
 --------------------------------------------------------------
 
 Prototype
         ::
 
-                post_seek_reset()
-                get_seek_reset()
-                cookie_seek_reset()
+                post_seek_reset() (LEGACY)
+                get_seek_reset() (LEGACY)
+                cookie_seek_reset() (LEGACY)
                 reset_offset(enum {post, get, cookie, req, auto})
 
 Parameter
@@ -236,13 +236,13 @@ Example
                 
                 //vcl
                 vcl_deliver{
-                  set resp.http.n1 = parsereq.get_read_keylist();
-                  set resp.http.n2 = parsereq.get_read_keylist();
-                  parsereq.get_seek_reset();
-                  set resp.http.n3 = parsereq.get_read_keylist();
-                  set resp.http.n4 = parsereq.get_read_keylist();
+                  set resp.http.n1 = parsereq.next_key(get);
+                  set resp.http.n2 = parsereq.next_key(get);
+                  parsereq.reset_offset(get);
+                  set resp.http.n3 = parsereq.next_key(get);
+                  set resp.http.n4 = parsereq.next_key(get);
                   //nothing
-                  set resp.http.n5 = parsereq.get_read_keylist();
+                  set resp.http.n5 = parsereq.next_key(get);
                 }
                 
                 //return
