@@ -475,6 +475,7 @@ static int vmod_Hook_unset_bereq(struct sess *sp){
 	
 	switch(sp->step){
 		case STP_MISS:
+			vmod_Hook_Miss_opt_post_loopup(sp);
 			return(vmod_Hook_miss(sp));
 
 		case STP_PASS:
@@ -483,6 +484,21 @@ static int vmod_Hook_unset_bereq(struct sess *sp){
 		case STP_PIPE:
 			return(vmod_Hook_pipe(sp));
 	}
+}
+static void vmod_Hook_Miss_opt_post_loopup(struct sess *sp){
+
+	
+	if(strcmp(sp->http->hd[HTTP_HDR_REQ].b, "POST")) return;
+	struct vmod_request *c = vmodreq_get(sp);
+	if(!c->opt_post_lookup) return;
+
+	//send body
+	sp->sendbody = 1;
+	//modify request method
+	VRT_l_bereq_request(sp,"POST",vrt_magic_string_end);
+	//set length
+	VRT_SetHdr(sp, HDR_BEREQ, "\017content-length:",VRT_int_string(sp, c->size_post),vrt_magic_string_end);
+	
 }
 static int vmod_Hook_unset_error(struct sess *sp){
 	struct vmod_request *c = vmodreq_get(sp);

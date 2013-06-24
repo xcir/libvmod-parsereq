@@ -89,6 +89,8 @@ struct vmod_request {
 	char *raw_cookie;
 	int  size_cookie;
 
+	unsigned  opt_post_lookup;
+	
 	enum VMODREQ_TYPE nowtype;
 };
 
@@ -105,6 +107,7 @@ ssize_t vmod_HTC_Read(struct worker *, struct http_conn *, void *, size_t );
 static int vmod_Hook_unset_deliver(struct sess *);
 static int vmod_Hook_unset_bereq(struct sess *);
 static int vmod_Hook_unset_error(struct sess *);
+static void vmod_Hook_Miss_opt_post_loopup(struct sess *);
 
 static void vmodreq_headers_free(struct vmod_headers *);
 

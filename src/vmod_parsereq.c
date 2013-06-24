@@ -156,6 +156,17 @@ void vmod_debuginit(struct sess *sp)
 	vmod_init(sp);
 }
 
+void vmod_setopt(struct sess *sp, const char *opt){
+	if(!vmodreq_get_raw(sp)){
+		VRT_panic(sp,"please write \"parsereq.init();\" to 1st line in vcl_recv.",vrt_magic_string_end);
+	}
+	struct vmod_request *c = vmodreq_get(sp);
+	if (!strcmp(opt, "enable_post_lookup")){
+		c->opt_post_lookup = (1==1);
+		return;
+	}
+}
+
 int vmod_errcode(struct sess *sp){
 	if(!vmodreq_get_raw(sp)){
 		VRT_panic(sp,"please write \"parsereq.init();\" to 1st line in vcl_recv.",vrt_magic_string_end);

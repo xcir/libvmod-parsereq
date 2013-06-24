@@ -7,8 +7,8 @@ Varnish parse data module
 -------------------------
 
 :Author: Syohei Tanaka(@xcir)
-:Date: 2012-11-30
-:Version: 0.11
+:Date: 2013-06-25
+:Version: 0.12
 :Manual section: 3
 
 SYNOPSIS
@@ -57,6 +57,42 @@ Description
 	
 	Make sure to call parsereq.init() in vcl_recv before using 
 	any other function.
+
+Example
+        ::
+
+                import parsereq;
+                
+                vcl_recv{
+                  parsereq.init();
+                }
+
+setopt
+-------------
+
+Prototype
+        ::
+
+                setopt(enum {enable_post_lookup})
+
+Option
+        ::
+
+                enable_post_lookup (EXPERIMENTAL)
+                 Enable to "CACHE" for POST request. very dangerous.
+                 This option modify to
+                  Backend request method set to "POST".
+                  Enable send body.
+                  Content-Length is set to POST size.
+
+Return value
+        ::
+
+                void
+                
+
+Description
+	Set option.
 
 Example
         ::
@@ -468,6 +504,8 @@ Tested Version
 
 HISTORY
 ===========
+
+Version 0.12: Support POST request cache.
 
 Version 0.11: Support REQ data type.(req.http.*) And AUTO data type.
 

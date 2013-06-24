@@ -5,6 +5,8 @@ Function VOID   init()
 Function INT    errcode()
 Function VOID   debuginit()
 
+Function VOID   setopt(ENUM {enable_post_lookup})
+
 #########################################################
 # new
 Function STRING param(ENUM {post, get, cookie, req, auto}, STRING)
