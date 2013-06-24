@@ -1,0 +1,26 @@
+varnishtest "post lookup"
+
+server s1 {
+       rxreq
+       expect req.request == GET
+       txresp
+} -start
+
+varnish v1 -vcl+backend {
+	import parsereq from "${vmod_topbuild}/src/.libs/libvmod_parsereq.so";
+
+	sub vcl_recv {
+		parsereq.init();
+		return(lookup);
+	}
+
+} -start
+
+client c1 {
+	txreq -req POST -url "/" -hdr "Content-Type: samurai" -body "osushioishii"
+	rxresp
+
+}
+
+
+client c1 -run
