@@ -471,7 +471,7 @@ const char *vmodreq_header(struct sess *sp, enum VMODREQ_TYPE type, const char *
 //フック時に呼び出される関数
 //hook function(miss,pass,pipe)
 static int vmod_Hook_unset_bereq(struct sess *sp){
-	VRT_SetHdr(sp, HDR_BEREQ, POST_REQ_HDR, 0);
+	VRT_SetHdr(sp, HDR_BEREQ, POST_REQ_HDR, vrt_magic_string_end);
 	
 	switch(sp->step){
 		case STP_MISS:
