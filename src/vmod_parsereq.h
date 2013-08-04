@@ -154,5 +154,5 @@ int count_header(struct sess *, enum gethdr_e );
 struct http * vrt_selecthttp(struct sess *, enum gethdr_e);
 const char*get_header_key(struct sess *, enum gethdr_e , int );
 void header_iterate(struct sess *, const char* , enum gethdr_e );
-
+void setdebug();
 void chkinit(struct sess *);

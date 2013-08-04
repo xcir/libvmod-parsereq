@@ -160,6 +160,7 @@ struct vmod_request *vmodreq_init(struct sess *sp){
 	if(hook_done == 0){
 		AZ(pthread_mutex_lock(&vmod_mutex));
 		if(hook_done == 0){
+			debugmsg(sp,"vmprd %d hook start",sp->xid);
 			
 			vmod_Hook_deliver		= sp->vcl->deliver_func;
 			sp->vcl->deliver_func	= vmod_Hook_unset_deliver;
@@ -1056,6 +1057,9 @@ int vmodreq_post_parse(struct sess *sp){
 
 //////////////////////////////////////////
 //デバッグ用
+void setdebug(){
+	is_debug = 1;
+}
 void debugmsg(struct sess *sp,const char* f,...){
 	if(!is_debug) return;
 	va_list ap;

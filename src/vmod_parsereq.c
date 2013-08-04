@@ -152,7 +152,7 @@ void vmod_init(struct sess *sp){
 
 void vmod_debuginit(struct sess *sp)
 {
-	is_debug = 1;
+	setdebug();
 	vmod_init(sp);
 }
 
