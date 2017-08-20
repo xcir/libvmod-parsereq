@@ -16,6 +16,11 @@ SYNOPSIS
 
 import parsereq;
 
+NOTICE
+==================
+This project is deprecated.
+New project is https://github.com/xcir/libvmod-parseform
+
 DESCRIPTION
 ==============
 
